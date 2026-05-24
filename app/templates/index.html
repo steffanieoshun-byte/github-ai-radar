@@ -39,7 +39,7 @@
             </label>
             <label>
               <span>扫描深度</span>
-              <select name="scan_mode" title="控制每个项目读取多少关键文件">
+              <select name="scan_mode" title="控制每个项目最多读取多少关键文件">
                 <option value="quick">快速</option>
                 <option value="standard">标准</option>
                 <option value="deep">深入</option>
@@ -64,10 +64,9 @@
               <strong>{{ item.repo_full_name }}</strong>
               <span>{{ item.total_score }}</span>
             </div>
-            <div class="tags">
+            <div class="tags tight-tags">
               <span>{{ item.final_action_label }}</span>
               <span>{{ item.project_type_label }}</span>
-              <span>{{ item.initial_decision_label }}</span>
             </div>
           </a>
         {% else %}
@@ -94,10 +93,10 @@
           </div>
           <div class="actions">
             <form method="post" action="/projects/{{ detail.project.id }}/mark">
-              <button name="status" value="watch">观察</button>
+              <button name="status" value="watch" title="暂时保留，后续再看">加入观察</button>
             </form>
             <form method="post" action="/projects/{{ detail.project.id }}/mark">
-              <button name="status" value="experiment">实验</button>
+              <button name="status" value="experiment" title="值得拆一个本地小实验">设为实验候选</button>
             </form>
             <form method="post" action="/projects/{{ detail.project.id }}/reanalyze">
               <select name="scan_mode" aria-label="重新分析深度">
@@ -114,33 +113,19 @@
           <section class="main-detail">
             <article class="panel focus-panel">
               <h3>为什么值得看</h3>
-              <div class="detail-grid compact-grid">
-                <div>
-                  <strong>解决的问题</strong>
-                  <p>{{ detail.concise_problem }}</p>
-                </div>
-                <div>
-                  <strong>适合谁看</strong>
-                  <p>{{ detail.concise_users }}</p>
-                </div>
-                <div>
-                  <strong>核心玩法</strong>
-                  <p>{{ detail.analysis_json.ai_pattern }}</p>
-                </div>
-                <div>
-                  <strong>项目类型</strong>
-                  <p>{{ detail.project_type_label }}</p>
-                </div>
+              <div class="signal-tags">
+                {% for name, value in detail.signal_tags %}
+                  <span><b>{{ name }}</b>{{ value }}</span>
+                {% endfor %}
               </div>
             </article>
 
             <article class="panel notes-panel">
               <h3>灵感结论</h3>
-              <div class="note-grid">
-                <p><strong>直接价值</strong>{{ detail.analysis_json.direct_value_for_me }}</p>
-                <p><strong>治理启发</strong>{{ detail.analysis_json.governance_value }}</p>
-                <p><strong>知识技巧</strong>{{ detail.analysis_json.knowledge_tips }}</p>
-                <p><strong>可复刻实验</strong>{{ detail.analysis_json.replicable_mvp }}</p>
+              <div class="narrative">
+                {% for paragraph in detail.inspiration_paragraphs %}
+                  <p>{{ paragraph }}</p>
+                {% endfor %}
               </div>
             </article>
           </section>

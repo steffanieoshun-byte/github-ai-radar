@@ -218,15 +218,15 @@ button,
 .library-list {
   min-height: 0;
   overflow: auto;
-  padding: 4px 10px 12px;
+  padding: 4px 8px 10px;
 }
 
 .library-item {
   display: block;
-  margin: 7px 0;
-  padding: 12px;
+  margin: 4px 0;
+  padding: 8px 9px;
   border: 1px solid transparent;
-  border-radius: 8px;
+  border-radius: 7px;
   background: rgba(255, 255, 255, 0.76);
 }
 
@@ -248,20 +248,25 @@ button,
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 15px;
+  font-size: 13px;
 }
 
 .item-head span {
   color: var(--green);
-  font-size: 22px;
+  font-size: 16px;
   font-weight: 900;
 }
 
 .tags {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
-  margin-top: 9px;
+  gap: 4px;
+  margin-top: 5px;
+}
+
+.tight-tags span {
+  padding: 3px 7px;
+  font-size: 10px;
 }
 
 .empty-state {
@@ -344,49 +349,46 @@ button,
   background: #fff;
 }
 
-.detail-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
-}
-
-.detail-grid div {
-  min-height: 98px;
-  border: 1px solid #dbe7df;
-  border-radius: 7px;
-  background: var(--soft);
-  padding: 12px;
-}
-
-.detail-grid strong,
-.note-grid strong {
-  display: block;
-  margin-bottom: 6px;
-  font-size: 13px;
-}
-
-.detail-grid p,
-.note-grid p {
-  margin: 0;
-  color: #34443c;
-  font-size: 14px;
-}
-
 .notes-panel {
   min-height: 0;
   overflow: hidden;
 }
 
-.note-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px 14px;
+.signal-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
 }
 
-.note-grid p {
-  min-height: 74px;
-  border-left: 4px solid #d2eadb;
-  padding: 4px 10px;
+.signal-tags span {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 34px;
+  border: 1px solid #dbe7df;
+  border-radius: 999px;
+  background: var(--soft);
+  color: #34443c;
+  padding: 6px 12px;
+  font-size: 14px;
+}
+
+.signal-tags b {
+  color: var(--green);
+  font-size: 12px;
+}
+
+.narrative {
+  max-width: 1080px;
+  display: grid;
+  gap: 14px;
+}
+
+.narrative p {
+  margin: 0;
+  color: #34443c;
+  font-size: 16px;
+  line-height: 1.72;
 }
 
 .score-panel {
@@ -471,9 +473,7 @@ button,
   }
 
   .workspace-head,
-  .workspace-body,
-  .detail-grid,
-  .note-grid {
+  .workspace-body {
     grid-template-columns: 1fr;
   }
 }

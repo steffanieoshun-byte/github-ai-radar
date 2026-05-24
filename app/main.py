@@ -197,8 +197,19 @@ def _detail_view(detail: dict[str, Any] | None) -> dict[str, Any] | None:
         "final_action_label": ACTION_LABELS.get(analysis["final_action"], analysis["final_action"]),
         "initial_decision_label": DECISION_LABELS.get(analysis["initial_decision"], analysis["initial_decision"]),
         "project_type_label": PROJECT_TYPE_LABELS.get(analysis_json.get("project_type", "Other"), analysis_json.get("project_type", "Other")),
-        "concise_problem": f"这个仓库可作为“{PROJECT_TYPE_LABELS.get(analysis_json.get('project_type', 'Other'), '其他')}”方向的结构参考，用来提炼可复刻的本地灵感。",
-        "concise_users": "适合想改进个人智能工作流、自动化流程或项目治理方法的人。",
+        "signal_tags": [
+            ("方向", PROJECT_TYPE_LABELS.get(analysis_json.get("project_type", "Other"), "其他")),
+            ("建议", ACTION_LABELS.get(analysis["final_action"], analysis["final_action"])),
+            ("证据", f"已读 {len(detail['evidence_files'])} 个关键文件"),
+            ("用途", "提炼本地小实验"),
+            ("读法", "先看结构再决定是否深挖"),
+            ("风险", "证据不足则低分处理"),
+        ],
+        "inspiration_paragraphs": [
+            f"我的判断：{analysis_json.get('one_line_judgment', '')} 这个结果不是让你照搬整个仓库，而是判断它能不能成为灵感来源：有没有新的组织方式、自动化流程、治理规则或可拆出来的小技巧。",
+            f"可以怎么用：{analysis_json.get('replicable_mvp', '')} 如果只是泛泛而谈，就先放入观察；如果能拆出一个清楚的小动作，就标成实验候选。",
+            f"继续看的重点：{analysis_json.get('knowledge_tips', '')} 读源码不是第一步，先看它如何安排文档、示例、运行入口和规则边界。",
+        ],
     }
 
 
