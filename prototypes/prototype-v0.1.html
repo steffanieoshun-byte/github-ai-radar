@@ -1,613 +1,262 @@
 <!doctype html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>本地 GitHub AI 项目雷达 v0.1 原型</title>
+  <title>GitHub AI Radar v0.1 Prototype</title>
   <style>
     :root {
-      --bg: #eef1f4;
-      --panel: #f8faf9;
-      --surface: #ffffff;
-      --soft: #f1f5f3;
-      --ink: #17211c;
-      --muted: #63716a;
-      --faint: #8b9791;
+      --bg: #eef2f4;
+      --panel: #ffffff;
+      --side: #f7f8f6;
       --line: #d7dfda;
+      --ink: #17211c;
+      --muted: #65736b;
       --green: #1f8f5f;
-      --teal: #277f86;
-      --blue: #2b6cb0;
-      --violet: #6557b8;
-      --amber: #b7791f;
-      --red: #b54949;
-      --shadow: 0 18px 48px rgba(23, 33, 28, 0.08);
+      --blue: #2c6fa8;
     }
-
     * { box-sizing: border-box; }
-
     body {
       margin: 0;
       min-height: 100vh;
       background: var(--bg);
       color: var(--ink);
-      font-family: "Microsoft YaHei", "PingFang SC", Arial, sans-serif;
-      line-height: 1.45;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     }
-
-    .app {
+    .shell {
       min-height: 100vh;
-      padding: 32px;
-    }
-
-    .workspace {
-      max-width: 1440px;
-      height: calc(100vh - 64px);
-      min-height: 760px;
-      margin: 0 auto;
+      padding: 28px;
       display: grid;
-      grid-template-columns: 328px 1fr;
-      background: var(--surface);
+      grid-template-columns: 340px minmax(0, 1fr);
+    }
+    aside, main {
       border: 1px solid var(--line);
-      box-shadow: var(--shadow);
-      overflow: hidden;
+      background: var(--panel);
     }
-
-    .sidebar {
-      background: #edf1ef;
-      border-right: 1px solid var(--line);
-      display: flex;
-      flex-direction: column;
-      min-width: 0;
+    aside {
+      border-right: 0;
+      background: var(--side);
+      display: grid;
+      grid-template-rows: auto auto 1fr auto;
     }
-
-    .side-head {
-      padding: 24px 24px 18px;
+    .block {
+      padding: 22px;
       border-bottom: 1px solid var(--line);
     }
-
-    .brand {
-      margin: 0;
-      font-size: 22px;
-      line-height: 1.2;
-      letter-spacing: 0;
-    }
-
-    .side-desc {
-      margin: 8px 0 18px;
-      color: var(--muted);
-      font-size: 12px;
-    }
-
-    .scan-button {
+    h1, h2, h3, p { margin-top: 0; }
+    h1 { font-size: 27px; margin-bottom: 8px; }
+    h2 { font-size: 30px; margin-bottom: 8px; }
+    h3 { font-size: 15px; margin-bottom: 12px; }
+    p { color: var(--muted); line-height: 1.45; }
+    button {
       width: 100%;
-      height: 42px;
+      height: 40px;
       border: 0;
-      border-radius: 8px;
+      border-radius: 7px;
       background: var(--green);
-      color: #fff;
-      font-size: 14px;
-      font-weight: 700;
+      color: white;
+      font-weight: 800;
     }
-
-    .scan-summary {
-      margin-top: 14px;
-      padding: 12px;
-      background: rgba(255,255,255,0.7);
-      border: 1px solid var(--line);
-      border-radius: 8px;
-    }
-
-    .summary-row {
+    .filters {
+      padding: 14px 18px 8px;
       display: flex;
-      justify-content: space-between;
-      gap: 12px;
-      padding: 4px 0;
-      color: var(--muted);
-      font-size: 12px;
-    }
-
-    .summary-row strong {
-      color: var(--ink);
-      font-weight: 700;
-    }
-
-    .filter-bar {
-      display: flex;
-      gap: 6px;
+      gap: 8px;
       flex-wrap: wrap;
-      padding: 16px 20px 8px;
     }
-
-    .chip {
-      display: inline-flex;
-      align-items: center;
+    .chip, .tag {
       border: 1px solid var(--line);
       border-radius: 999px;
       padding: 5px 9px;
-      background: rgba(255,255,255,0.72);
+      background: #fff;
       color: var(--muted);
       font-size: 11px;
-      white-space: nowrap;
-    }
-
-    .chip.active {
-      background: #dff1e8;
-      border-color: #badcc9;
-      color: var(--green);
       font-weight: 700;
     }
-
-    .list {
-      flex: 1;
-      overflow: auto;
-      padding: 4px 14px 18px;
+    .chip.active {
+      color: var(--green);
+      background: #dff2e8;
+      border-color: #b9dcca;
     }
-
+    .list {
+      padding: 8px 14px 18px;
+      overflow: auto;
+    }
     .item {
-      padding: 14px;
       margin: 8px 0;
-      background: rgba(255,255,255,0.75);
+      padding: 14px;
       border: 1px solid transparent;
       border-radius: 8px;
+      background: rgba(255,255,255,0.75);
     }
-
-    .item.selected {
-      background: var(--surface);
-      border-color: #b9d7c6;
-      box-shadow: 0 8px 24px rgba(31, 143, 95, 0.12);
+    .item.active {
+      border-color: #b7d9c5;
+      background: #fff;
     }
-
-    .item-top {
+    .item-head {
       display: flex;
       justify-content: space-between;
       gap: 10px;
-      align-items: baseline;
+      font-weight: 900;
     }
-
-    .repo {
-      font-size: 14px;
-      font-weight: 700;
-      overflow-wrap: anywhere;
-    }
-
-    .score {
-      color: var(--green);
-      font-size: 18px;
-      font-weight: 800;
-    }
-
-    .item-desc {
-      margin-top: 6px;
-      color: var(--muted);
-      font-size: 12px;
-    }
-
+    .score { color: var(--green); font-size: 20px; }
     .tags {
       display: flex;
       gap: 6px;
       flex-wrap: wrap;
       margin-top: 10px;
     }
-
-    .tag {
-      display: inline-flex;
-      border-radius: 999px;
-      padding: 4px 8px;
-      background: #eef3f1;
-      color: #485750;
-      font-size: 11px;
-    }
-
-    .tag.green { background: #e1f3ea; color: var(--green); }
-    .tag.blue { background: #e6f0fb; color: var(--blue); }
-    .tag.violet { background: #eeebff; color: var(--violet); }
-    .tag.amber { background: #fff1d9; color: var(--amber); }
-    .tag.red { background: #ffe6e6; color: var(--red); }
-
-    .side-foot {
+    .history {
+      padding: 16px 18px;
       border-top: 1px solid var(--line);
-      padding: 14px 20px 18px;
-      color: var(--faint);
-      font-size: 11px;
+      color: var(--muted);
+      font-size: 12px;
     }
-
-    .main {
+    main {
       display: grid;
       grid-template-rows: auto 1fr;
       min-width: 0;
-      background: #f6f7f9;
     }
-
-    .main-head {
-      padding: 26px 30px 18px;
+    .head {
+      padding: 28px 32px 20px;
       border-bottom: 1px solid var(--line);
-      background: var(--surface);
-    }
-
-    .eyebrow {
-      margin: 0 0 6px;
-      color: var(--muted);
-      font-size: 12px;
-    }
-
-    .project-title {
       display: flex;
       justify-content: space-between;
       gap: 24px;
-      align-items: flex-start;
     }
-
-    .project-title h2 {
-      margin: 0;
-      font-size: 28px;
-      line-height: 1.18;
-      letter-spacing: 0;
-    }
-
-    .one-line {
-      margin: 9px 0 0;
-      color: var(--muted);
-      font-size: 14px;
-      max-width: 780px;
-    }
-
-    .actions {
+    .links {
       display: flex;
       gap: 8px;
       flex-wrap: wrap;
-      justify-content: flex-end;
-    }
-
-    .secondary-btn {
-      height: 34px;
-      border-radius: 7px;
-      border: 1px solid var(--line);
-      background: var(--surface);
-      color: var(--ink);
-      padding: 0 12px;
-      font-size: 12px;
-      font-weight: 700;
-    }
-
-    .content {
-      overflow: auto;
-      padding: 24px 30px 30px;
-      display: grid;
-      grid-template-columns: minmax(520px, 1fr) 340px;
-      gap: 22px;
       align-items: start;
     }
-
+    .links span {
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      padding: 8px 10px;
+      font-size: 12px;
+      font-weight: 800;
+    }
+    .content {
+      padding: 24px 32px 32px;
+      background: #f5f7f8;
+      display: grid;
+      grid-template-columns: minmax(460px, 1fr) 330px;
+      gap: 22px;
+      overflow: auto;
+    }
     .card {
-      background: var(--surface);
+      margin-bottom: 16px;
+      padding: 18px;
       border: 1px solid var(--line);
       border-radius: 8px;
-      padding: 18px;
-      margin-bottom: 16px;
+      background: #fff;
     }
-
-    .card h3 {
-      margin: 0 0 12px;
-      font-size: 15px;
-      line-height: 1.25;
-    }
-
-    .body-text {
-      margin: 0;
-      color: #33443b;
-      font-size: 14px;
-    }
-
-    .detail-grid {
+    .grid {
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 12px;
     }
-
-    .detail-box {
+    .box {
+      min-height: 108px;
       padding: 13px;
-      background: var(--soft);
-      border: 1px solid #dbe8df;
       border-radius: 7px;
+      border: 1px solid #dbe7df;
+      background: #eef4ef;
     }
-
-    .detail-box strong {
-      display: block;
-      margin-bottom: 6px;
-      font-size: 13px;
-    }
-
-    .detail-box span {
-      display: block;
-      color: var(--muted);
-      font-size: 12px;
-    }
-
-    .score-card {
-      position: sticky;
-      top: 0;
-    }
-
-    .total-score {
-      display: flex;
-      align-items: baseline;
-      justify-content: space-between;
-      gap: 12px;
-      padding-bottom: 14px;
-      border-bottom: 1px solid var(--line);
-      margin-bottom: 14px;
-    }
-
-    .total-score strong {
-      font-size: 42px;
-      line-height: 1;
-      color: var(--green);
-    }
-
-    .total-score span {
-      color: var(--muted);
-      font-size: 12px;
-    }
-
-    .metric {
+    .bar-row {
       display: grid;
-      grid-template-columns: 86px 1fr 24px;
+      grid-template-columns: 110px 1fr 24px;
       gap: 8px;
+      margin: 12px 0;
       align-items: center;
-      margin: 11px 0;
       font-size: 12px;
     }
-
     .bar {
       height: 8px;
-      background: #e5ebe8;
       border-radius: 999px;
+      background: #e5ebe8;
       overflow: hidden;
     }
-
-    .bar span {
+    .bar i {
       display: block;
       height: 100%;
-      border-radius: inherit;
+      width: 80%;
       background: var(--green);
     }
-
-    .evidence {
-      margin: 0;
-      padding: 0;
-      list-style: none;
+    code {
       font-family: Consolas, "Courier New", monospace;
       font-size: 12px;
     }
-
-    .evidence li {
-      padding: 9px 0;
-      border-bottom: 1px solid #edf1ef;
-      color: #314039;
-      overflow-wrap: anywhere;
-    }
-
-    .evidence li:last-child { border-bottom: 0; }
-
-    details {
-      background: var(--surface);
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      padding: 14px 16px;
-      color: var(--muted);
-      font-size: 12px;
-    }
-
-    summary {
-      cursor: default;
-      color: var(--ink);
-      font-weight: 700;
-    }
-
-    .basis {
-      margin-top: 12px;
-      display: grid;
-      gap: 8px;
-    }
-
-    .basis-row {
-      display: grid;
-      grid-template-columns: 98px 1fr;
-      gap: 10px;
-    }
-
-    @media (max-width: 980px) {
-      .app { padding: 16px; }
-      .workspace {
-        height: auto;
-        min-height: 0;
-        grid-template-columns: 1fr;
-      }
-      .content {
-        grid-template-columns: 1fr;
-      }
-      .score-card {
-        position: static;
-      }
+    @media (max-width: 1000px) {
+      .shell, .content { grid-template-columns: 1fr; }
+      aside { border-right: 1px solid var(--line); }
+      .head { display: block; }
     }
   </style>
 </head>
 <body>
-  <main class="app">
-    <section class="workspace" aria-label="本地 GitHub AI 项目雷达原型">
-      <aside class="sidebar">
-        <div class="side-head">
-          <h1 class="brand">AI 项目灵感库</h1>
-          <p class="side-desc">历史扫描沉淀在这里。你主要维护项目判断、评分和下一步动作。</p>
-          <button class="scan-button">新建扫描</button>
-          <div class="scan-summary" aria-label="当前扫描参数">
-            <div class="summary-row"><span>关键词</span><strong>agent workflow governance</strong></div>
-            <div class="summary-row"><span>数量</span><strong>10</strong></div>
-            <div class="summary-row"><span>模式</span><strong>quick</strong></div>
-          </div>
-        </div>
-
-        <div class="filter-bar" aria-label="筛选">
-          <span class="chip active">全部</span>
-          <span class="chip">高灵感</span>
-          <span class="chip">Watch</span>
-          <span class="chip">Experiment</span>
-        </div>
-
-        <div class="list" aria-label="历史灵感列表">
-          <article class="item selected">
-            <div class="item-top">
-              <div class="repo">superpowers/superpowers</div>
-              <div class="score">4.6</div>
-            </div>
-            <div class="item-desc">把 agent 技能、规则和执行纪律组织成可复用体系。</div>
-            <div class="tags">
-              <span class="tag green">Codex Experiment</span>
-              <span class="tag violet">治理启发</span>
-              <span class="tag">今天</span>
-            </div>
-          </article>
-
-          <article class="item">
-            <div class="item-top">
-              <div class="repo">spacexio/coming-soon</div>
-              <div class="score">3.9</div>
-            </div>
-            <div class="item-desc">轻量自动化模板，适合拆一个本地采集实验。</div>
-            <div class="tags">
-              <span class="tag blue">Watch</span>
-              <span class="tag amber">可复刻</span>
-              <span class="tag">今天</span>
-            </div>
-          </article>
-
-          <article class="item">
-            <div class="item-top">
-              <div class="repo">prompt-lab/eval-kit</div>
-              <div class="score">4.2</div>
-            </div>
-            <div class="item-desc">prompt 评测样例清楚，能启发本地评价标准。</div>
-            <div class="tags">
-              <span class="tag green">Deep Dive</span>
-              <span class="tag violet">Eval</span>
-              <span class="tag">昨天</span>
-            </div>
-          </article>
-
-          <article class="item">
-            <div class="item-top">
-              <div class="repo">agentops/local-runner</div>
-              <div class="score">3.5</div>
-            </div>
-            <div class="item-desc">日志和失败恢复有参考价值，但试用成本偏高。</div>
-            <div class="tags">
-              <span class="tag blue">Watch</span>
-              <span class="tag red">成本高</span>
-              <span class="tag">3 天前</span>
-            </div>
-          </article>
-        </div>
-
-        <div class="side-foot">已过滤项目记录已保存，可在后续版本查看。</div>
-      </aside>
-
-      <section class="main">
-        <header class="main-head">
-          <p class="eyebrow">当前选中项目</p>
-          <div class="project-title">
-            <div>
-              <h2>superpowers/superpowers</h2>
-              <p class="one-line">一句话判断：它把 AI agent 的“能力、边界、执行纪律”拆成可迁移的技能体系，很适合复刻成本地 Codex 项目治理模板。</p>
-            </div>
-            <div class="actions">
-              <button class="secondary-btn">Mark as Watch</button>
-              <button class="secondary-btn">Codex Experiment</button>
-              <button class="secondary-btn">Re-analyze</button>
-            </div>
-          </div>
-        </header>
-
-        <div class="content">
-          <section>
-            <article class="card">
-              <h3>为什么值得看</h3>
-              <p class="body-text">它不是单个工具 demo，而是把 agent 工作中容易失控的部分拆成技能、规则、验证和上下文管理。这个结构本身就能迁移到本地 AI 项目雷达、股票模拟、知识库治理等工作流里。</p>
-            </article>
-
-            <article class="card">
-              <h3>灵感点</h3>
-              <div class="detail-grid">
-                <div class="detail-box">
-                  <strong>技能化组织</strong>
-                  <span>把经验沉淀成可触发、可复用的 Skill，而不是散落在提示词里。</span>
-                </div>
-                <div class="detail-box">
-                  <strong>执行门禁</strong>
-                  <span>把“先验证再完成”做成流程约束，可迁移到项目扫描结果可信度。</span>
-                </div>
-                <div class="detail-box">
-                  <strong>轻量治理</strong>
-                  <span>不需要重平台，用本地文件和规则就能形成可维护治理层。</span>
-                </div>
-                <div class="detail-box">
-                  <strong>可复刻实验</strong>
-                  <span>先做一个项目雷达专用 skills/rules 文件夹，验证是否提升分析稳定性。</span>
-                </div>
-              </div>
-            </article>
-
-            <article class="card">
-              <h3>可复刻小实验</h3>
-              <p class="body-text">为 GitHub AI 项目雷达创建一组本地判断技能：搜索意图解析、壳信息初筛、目录匹配、证据评分、PASS 留痕。每个技能只负责一道判断门，最终由 Analyzer 汇总。</p>
-            </article>
-
-            <article class="card">
-              <h3>关键证据文件</h3>
-              <ul class="evidence">
-                <li>README.md · 说明技能化工作流和使用方式</li>
-                <li>skills/*/SKILL.md · 展示如何把经验拆成可触发能力</li>
-                <li>verification-before-completion/SKILL.md · 提供验证门禁样例</li>
-                <li>brainstorming/SKILL.md · 展示从意图到设计的收束流程</li>
-              </ul>
-            </article>
-
-            <details>
-              <summary>判断依据和后台信息</summary>
-              <div class="basis">
-                <div class="basis-row"><strong>初筛结果</strong><span>ANALYZE，README 和目录结构与 AI 治理/技能沉淀高度相关。</span></div>
-                <div class="basis-row"><strong>目录匹配</strong><span>skills、docs、规则文件清晰，匹配“治理与可复刻实验”搜索意图。</span></div>
-                <div class="basis-row"><strong>PASS 库</strong><span>本项目不进入 PASS；其他已过滤项目仅入库，v0.1 前端不展示入口。</span></div>
-                <div class="basis-row"><strong>未读内容</strong><span>大型历史记录和无关示例暂不读取，避免噪声和 token 消耗。</span></div>
-              </div>
-            </details>
-          </section>
-
-          <aside class="score-card">
-            <article class="card">
-              <div class="total-score">
-                <div>
-                  <strong>4.6</strong>
-                  <span>/ 5</span>
-                </div>
-                <span>最终动作<br>Codex Experiment</span>
-              </div>
-              <div class="metric"><span>灵感强度</span><div class="bar"><span style="width: 96%"></span></div><strong>5</strong></div>
-              <div class="metric"><span>可复刻性</span><div class="bar"><span style="width: 88%"></span></div><strong>4</strong></div>
-              <div class="metric"><span>治理启发</span><div class="bar"><span style="width: 100%"></span></div><strong>5</strong></div>
-              <div class="metric"><span>知识技巧</span><div class="bar"><span style="width: 84%"></span></div><strong>4</strong></div>
-              <div class="metric"><span>直接价值</span><div class="bar"><span style="width: 92%"></span></div><strong>5</strong></div>
-              <div class="metric"><span>试用难度</span><div class="bar"><span style="width: 42%"></span></div><strong>2</strong></div>
-              <div class="metric"><span>隐藏成本</span><div class="bar"><span style="width: 36%"></span></div><strong>2</strong></div>
-            </article>
-
-            <article class="card">
-              <h3>本次扫描摘要</h3>
-              <p class="body-text">扫描到 10 个项目，3 个进入分析，5 个 PASS 入库，2 个标记 Watch。前端只展示值得维护的灵感项目。</p>
-            </article>
-          </aside>
-        </div>
+  <div class="shell">
+    <aside>
+      <section class="block">
+        <h1>Inspiration Library</h1>
+        <p>One local workspace for scanning GitHub AI projects and preserving the useful findings.</p>
+        <button>Start Scan</button>
       </section>
-    </section>
-  </main>
+      <nav class="filters">
+        <span class="chip active">All</span>
+        <span class="chip">High Signal</span>
+        <span class="chip">Watch</span>
+        <span class="chip">Experiment</span>
+      </nav>
+      <section class="list">
+        <article class="item active">
+          <div class="item-head"><span>vercel/ai</span><span class="score">4.4</span></div>
+          <p>SDK patterns, examples, provider abstractions, and reusable app ideas.</p>
+          <div class="tags"><span class="tag">deep_dive</span><span class="tag">Workflow</span><span class="tag">TypeScript</span></div>
+        </article>
+        <article class="item">
+          <div class="item-head"><span>promptfoo/promptfoo</span><span class="score">4.2</span></div>
+          <p>Evaluation and guardrail ideas for local AI project governance.</p>
+          <div class="tags"><span class="tag">watch</span><span class="tag">Eval</span><span class="tag">Evidence rich</span></div>
+        </article>
+      </section>
+      <section class="history">Recent runs stay visible, while filtered decisions are stored quietly for dedupe.</section>
+    </aside>
+    <main>
+      <header class="head">
+        <div>
+          <p>Selected Project</p>
+          <h2>vercel/ai</h2>
+          <p>A useful inspiration source for provider abstraction, examples, and agent-ready workflow patterns.</p>
+        </div>
+        <div class="links"><span>Mark Watch</span><span>Codex Experiment</span><span>Re-analyze</span></div>
+      </header>
+      <section class="content">
+        <div>
+          <article class="card">
+            <h3>Why It Matters</h3>
+            <div class="grid">
+              <div class="box"><strong>Problem</strong><p>Build AI app flows without locking into one provider pattern.</p></div>
+              <div class="box"><strong>Pattern</strong><p>SDK abstractions, examples, streaming, tool calls, and integrations.</p></div>
+              <div class="box"><strong>Inspiration</strong><p>Extract a local provider adapter and examples-first learning loop.</p></div>
+              <div class="box"><strong>Replicable MVP</strong><p>Build one local adapter demo and score it with the same radar criteria.</p></div>
+            </div>
+          </article>
+          <article class="card">
+            <h3>Evidence Files</h3>
+            <p><code>README.md</code>, <code>examples/*</code>, <code>packages/*</code>, <code>docs/*</code></p>
+          </article>
+        </div>
+        <aside class="card">
+          <h3>Score Summary</h3>
+          <div class="bar-row"><span>Inspiration</span><div class="bar"><i style="width: 90%"></i></div><b>5</b></div>
+          <div class="bar-row"><span>Governance</span><div class="bar"><i style="width: 60%"></i></div><b>3</b></div>
+          <div class="bar-row"><span>Knowledge</span><div class="bar"><i style="width: 80%"></i></div><b>4</b></div>
+          <div class="bar-row"><span>Replicability</span><div class="bar"><i style="width: 80%"></i></div><b>4</b></div>
+          <div class="bar-row"><span>Evidence</span><div class="bar"><i style="width: 90%"></i></div><b>5</b></div>
+        </aside>
+      </section>
+    </main>
+  </div>
 </body>
 </html>
