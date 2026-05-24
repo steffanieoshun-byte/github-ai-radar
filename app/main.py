@@ -78,6 +78,14 @@ def _score_width(value: Any) -> int:
         return 0
 
 
+def _looks_like_raw_english(value: str) -> bool:
+    letters = [ch for ch in value if ch.isalpha()]
+    if len(letters) < 18:
+        return False
+    ascii_letters = sum(1 for ch in letters if ord(ch) < 128)
+    return ascii_letters / max(len(letters), 1) > 0.72
+
+
 def _cn_text(value: Any, repo_full_name: str = "") -> Any:
     if not isinstance(value, str):
         return value
@@ -99,10 +107,17 @@ def _cn_text(value: Any, repo_full_name: str = "") -> Any:
     if value in fixed:
         return fixed[value]
     if repo_full_name and value == f"{repo_full_name} may provide reusable AI workflow or governance inspiration.":
-        return f"{repo_full_name} 可能包含可复用的 AI 工作流、治理经验或灵感线索。"
+        return f"{repo_full_name} 可能包含可复用的智能工作流、治理经验或灵感线索。"
     if repo_full_name and value == f"{repo_full_name} was filtered out for this scan.":
         return f"{repo_full_name} 在本次扫描中被过滤。"
+    if repo_full_name and value == f"{repo_full_name} 可能包含可复用的 AI 工作流、治理经验或灵感线索。":
+        return f"{repo_full_name} 可能包含可复用的智能工作流、治理经验或灵感线索。"
+    if _looks_like_raw_english(value):
+        return "原始仓库描述是英文，已保留在后台证据中；前台只展示中文判断。"
     replacements = {
+        "AI 工作流": "智能工作流",
+        "AI 应用": "智能应用",
+        "AI ": "智能",
         "agent orchestration": "智能体编排",
         "workflow automation": "工作流自动化",
         "prompt management": "提示词管理",
@@ -194,7 +209,11 @@ def _detail_view(detail: dict[str, Any] | None) -> dict[str, Any] | None:
         worth_tags.append("有自动化线索")
     worth_tags.append(ACTION_LABELS.get(analysis["final_action"], analysis["final_action"]))
     problem = analysis_json.get("problem_solved", "未知")
+    if problem == "原始仓库描述是英文，已保留在后台证据中；前台只展示中文判断。":
+        problem = "这个仓库的原始简介不足以直接判断价值，前台改按仓库结构、文档线索、主题和评分来判断它是否值得留下。"
+    problem = str(problem).rstrip("。！？.!?")
     ai_pattern = analysis_json.get("ai_pattern", "未知")
+    ai_pattern = str(ai_pattern).rstrip("。！？.!?")
     direct_value = analysis_json.get("direct_value_for_me", "未知")
     governance_value = analysis_json.get("governance_value", "未知")
     knowledge_tips = analysis_json.get("knowledge_tips", "未知")

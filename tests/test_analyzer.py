@@ -29,3 +29,5 @@ def test_mock_analyzer_scores_inspiration_and_evidence() -> None:
     assert analysis["scores"]["evidence_quality"] >= 3
     assert analysis["evidence_files"] == ["docs/quickstart.md"]
     assert analysis["final_action"] in {"watch", "deep_dive", "codex_experiment"}
+    assert "AI agent workflow" not in analysis["problem_solved"]
+    assert "智能工作流" in analysis["problem_solved"]

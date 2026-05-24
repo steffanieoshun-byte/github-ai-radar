@@ -129,9 +129,9 @@ class MockAnalyzer(AgentAdapter):
             project_type = "Eval"
         return {
             "analysis_version": "0.1",
-            "one_line_judgment": f"{repo.full_name} 可能包含可复用的 AI 工作流、治理经验或灵感线索。",
+            "one_line_judgment": f"{repo.full_name} 可能包含可复用的智能工作流、治理经验或灵感线索。",
             "project_type": project_type,
-            "problem_solved": repo.description or "未知",
+            "problem_solved": "根据仓库描述、文档和目录结构判断它是否提供可复用的智能工作流、治理方法、知识技巧或自动化动作。",
             "target_users": "智能应用构建者、自动化用户、本地工作流实验者",
             "input": "仓库文档、示例、提示词、工作流或源码文件",
             "output": "可复用的项目情报和实验灵感",
