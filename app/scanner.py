@@ -67,6 +67,18 @@ SKIP_SUFFIXES = (
 
 MODE_BUDGETS = {"quick": 2, "standard": 8, "deep": 20}
 
+KEYWORD_ALIASES = {
+    "智能体治理": "ai agent governance",
+    "工作流自动化": "agent workflow automation",
+    "提示词评测防护": "prompt evaluation guardrail",
+    "本地知识库": "local ai knowledge base",
+    "代码助手自动化": "coding assistant automation",
+}
+
+
+def search_keyword(keyword: str) -> str:
+    return KEYWORD_ALIASES.get(keyword.strip(), keyword.strip())
+
 
 def make_intent(keyword: str, scan_count: int, scan_mode: str, title: str = "") -> SearchIntent:
     mode = scan_mode if scan_mode in MODE_BUDGETS else "quick"
@@ -75,10 +87,11 @@ def make_intent(keyword: str, scan_count: int, scan_mode: str, title: str = "") 
 
 
 def build_queries(intent: SearchIntent) -> list[str]:
-    base = f"{intent.keyword} in:name,description,readme fork:false archived:false"
+    keyword = search_keyword(intent.keyword)
+    base = f"{keyword} in:name,description,readme fork:false archived:false"
     queries = [base]
     for direction in intent.directions:
-        queries.append(f"{intent.keyword} {direction} in:name,description,readme fork:false archived:false")
+        queries.append(f"{keyword} {direction} in:name,description,readme fork:false archived:false")
     return queries[: max(1, min(len(queries), intent.scan_count + 1))]
 
 

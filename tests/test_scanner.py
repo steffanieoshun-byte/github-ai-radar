@@ -3,7 +3,7 @@ import sqlite3
 from app import db
 from app.analyzer import MockAnalyzer
 from app.models import RepoMetadata
-from app.scanner import RadarScanner, select_files
+from app.scanner import RadarScanner, build_queries, make_intent, search_keyword, select_files
 
 
 class FakeGitHubClient:
@@ -71,6 +71,14 @@ def test_select_files_respects_quick_budget() -> None:
     assert len(selected) == 2
     assert selected[0].path == "README.md"
     assert not_read
+
+
+def test_chinese_keyword_options_search_with_english_query_terms() -> None:
+    intent = make_intent("智能体治理", 3, "quick")
+    queries = build_queries(intent)
+
+    assert search_keyword("智能体治理") == "ai agent governance"
+    assert "ai agent governance" in queries[0]
 
 
 def test_scanner_persists_passes_and_reuses_similar_intent(tmp_path) -> None:

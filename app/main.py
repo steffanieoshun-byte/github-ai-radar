@@ -29,7 +29,7 @@ templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
 ACTION_LABELS = {
     "direct_try": "直接试用",
     "deep_dive": "深挖",
-    "codex_experiment": "Codex 实验",
+    "codex_experiment": "本地实验",
     "watch": "观察",
     "skip": "略过",
 }
@@ -48,14 +48,20 @@ STATUS_LABELS = {
 }
 
 PROJECT_TYPE_LABELS = {
-    "Agent": "Agent",
-    "RAG": "RAG",
+    "Agent": "智能体",
+    "RAG": "知识检索",
     "Workflow": "工作流",
     "Browser": "浏览器",
-    "Coding": "编程助手",
-    "Eval": "评测/治理",
+    "Coding": "代码助手",
+    "Eval": "评测治理",
     "KnowledgeBase": "知识库",
     "Other": "其他",
+}
+
+MODE_LABELS = {
+    "quick": "快速",
+    "standard": "标准",
+    "deep": "深入",
 }
 
 
@@ -96,7 +102,27 @@ def _cn_text(value: Any, repo_full_name: str = "") -> Any:
         return f"{repo_full_name} 可能包含可复用的 AI 工作流、治理经验或灵感线索。"
     if repo_full_name and value == f"{repo_full_name} was filtered out for this scan.":
         return f"{repo_full_name} 在本次扫描中被过滤。"
-    return value
+    replacements = {
+        "agent orchestration": "智能体编排",
+        "workflow automation": "工作流自动化",
+        "prompt management": "提示词管理",
+        "evaluation": "评测",
+        "agent": "智能体",
+        "workflow": "工作流",
+        "prompt": "提示词",
+        "prompts": "提示词",
+        "starter template": "启动模板",
+        "templates": "模板",
+        "examples": "示例",
+        "docs": "文档",
+        "eval": "评测",
+        "guardrail": "防护规则",
+        "guardrails": "防护规则",
+    }
+    translated = value
+    for source, target in replacements.items():
+        translated = translated.replace(source, target)
+    return translated
 
 
 def _display_analysis(analysis: dict[str, Any], repo_full_name: str) -> dict[str, Any]:
@@ -160,6 +186,7 @@ def _detail_view(detail: dict[str, Any] | None) -> dict[str, Any] | None:
         "project": project,
         "analysis": analysis,
         "analysis_json": analysis_json,
+        "mode_labels": MODE_LABELS,
         "scores": scores,
         "topics": topics,
         "selected_files": detail["selected_files"],
@@ -170,6 +197,8 @@ def _detail_view(detail: dict[str, Any] | None) -> dict[str, Any] | None:
         "final_action_label": ACTION_LABELS.get(analysis["final_action"], analysis["final_action"]),
         "initial_decision_label": DECISION_LABELS.get(analysis["initial_decision"], analysis["initial_decision"]),
         "project_type_label": PROJECT_TYPE_LABELS.get(analysis_json.get("project_type", "Other"), analysis_json.get("project_type", "Other")),
+        "concise_problem": f"这个仓库可作为“{PROJECT_TYPE_LABELS.get(analysis_json.get('project_type', 'Other'), '其他')}”方向的结构参考，用来提炼可复刻的本地灵感。",
+        "concise_users": "适合想改进个人智能工作流、自动化流程或项目治理方法的人。",
     }
 
 
@@ -194,6 +223,7 @@ def _workspace_context(
         "runs": runs,
         "active_run": active_run,
         "status_labels": STATUS_LABELS,
+        "mode_labels": MODE_LABELS,
         "filter_name": filter_name,
         "message": message,
     }

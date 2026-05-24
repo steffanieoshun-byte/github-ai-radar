@@ -10,43 +10,44 @@
   <main class="app-shell">
     <aside class="sidebar" aria-label="灵感库">
       <section class="scan-panel">
-        <div>
-          <p class="eyebrow">本地 GitHub AI 项目雷达</p>
-          <h1>灵感库</h1>
-          <p class="muted">搜索 GitHub 上的 AI 项目，沉淀 AI 玩法、自动化思路、治理经验、知识技巧和可复刻小实验。</p>
+        <div class="scan-title-row">
+          <div>
+            <p class="eyebrow">本地项目雷达</p>
+            <h1>灵感库</h1>
+          </div>
+          {% if active_run %}
+            <span class="mini-status {{ active_run.status }}">{{ status_labels.get(active_run.status, active_run.status) }}</span>
+          {% endif %}
         </div>
-        <form class="scan-form" method="post" action="/scan">
-          <label>
-            <span>扫描标题</span>
-            <input name="scan_title" placeholder="可选">
-          </label>
-          <label>
+        <form class="scan-form compact" method="post" action="/scan">
+          <input type="hidden" name="scan_title" value="">
+          <label class="keyword-field">
             <span>关键词</span>
-            <input name="keyword" required placeholder="ai agent 治理">
+            <input name="keyword" required list="keyword-options" placeholder="输入或选择方向">
+            <datalist id="keyword-options">
+              <option value="智能体治理">
+              <option value="工作流自动化">
+              <option value="提示词评测防护">
+              <option value="本地知识库">
+              <option value="代码助手自动化">
+            </datalist>
           </label>
-          <div class="form-grid">
+          <div class="scan-inline">
             <label>
               <span>数量</span>
               <input name="scan_count" type="number" min="1" max="30" value="10">
             </label>
             <label>
-              <span>模式</span>
-              <select name="scan_mode">
-                <option value="quick">quick</option>
-                <option value="standard">standard</option>
-                <option value="deep">deep</option>
+              <span>扫描深度</span>
+              <select name="scan_mode" title="控制每个项目读取多少关键文件">
+                <option value="quick">快速</option>
+                <option value="standard">标准</option>
+                <option value="deep">深入</option>
               </select>
             </label>
+            <button class="primary-btn" type="submit">开始</button>
           </div>
-          <button class="primary-btn" type="submit">开始扫描</button>
         </form>
-        {% if active_run %}
-          <div class="run-status {{ active_run.status }}">
-            <strong>最近扫描 #{{ active_run.id }}：{{ status_labels.get(active_run.status, active_run.status) }}</strong>
-            <span>{{ active_run.keyword }} · {{ active_run.scan_mode }} · 发现 {{ active_run.discovered_count }} · 分析 {{ active_run.analyzed_count }}</span>
-            {% if active_run.error_message %}<em>{{ active_run.error_message }}</em>{% endif %}
-          </div>
-        {% endif %}
       </section>
 
       <nav class="filters" aria-label="灵感库筛选">
@@ -56,84 +57,74 @@
         <a class="{{ 'active' if filter_name == 'experiment' else '' }}" href="/?filter=experiment">实验</a>
       </nav>
 
-      <section class="library-list" aria-label="项目列表">
+      <section class="library-list compact-list" aria-label="项目列表">
         {% for item in library %}
           <a class="library-item {{ 'selected' if detail and detail.project.id == item.id else '' }}" href="/?filter={{ filter_name }}&project_id={{ item.id }}">
             <div class="item-head">
               <strong>{{ item.repo_full_name }}</strong>
               <span>{{ item.total_score }}</span>
             </div>
-            <p>{{ item.description }}</p>
             <div class="tags">
               <span>{{ item.final_action_label }}</span>
               <span>{{ item.project_type_label }}</span>
-              <span>{{ item.language }}</span>
+              <span>{{ item.initial_decision_label }}</span>
             </div>
           </a>
         {% else %}
           <div class="empty-state">
-            <strong>还没有沉淀灵感项目。</strong>
-            <span>先跑一次 quick 小扫描，建立本地灵感库。</span>
+            <strong>还没有灵感项目。</strong>
+            <span>先跑一次快速扫描。</span>
           </div>
-        {% endfor %}
-      </section>
-
-      <section class="history-strip" aria-label="历史扫描">
-        <h2>历史扫描</h2>
-        {% for run in runs[:5] %}
-          <a href="/?run_id={{ run.id }}">#{{ run.id }} {{ run.keyword }} · {{ status_labels.get(run.status, run.status) }}</a>
-        {% else %}
-          <span>暂无历史扫描。</span>
         {% endfor %}
       </section>
     </aside>
 
     <section class="workspace">
       {% if detail %}
-        <header class="workspace-head">
+        <header class="workspace-head compact-head">
           <div>
             <p class="eyebrow">当前项目</p>
             <h2>{{ detail.project.repo_full_name }}</h2>
             <p>{{ detail.analysis_json.one_line_judgment }}</p>
             <div class="meta-row">
-              <a href="{{ detail.project.repo_url }}" target="_blank" rel="noreferrer">打开 GitHub</a>
-              <span>{{ detail.project.stars }} stars</span>
-              <span>{{ detail.project.updated_at or "更新时间未知" }}</span>
+              <a href="{{ detail.project.repo_url }}" target="_blank" rel="noreferrer">打开仓库</a>
+              <span>收藏 {{ detail.project.stars }}</span>
+              <span>更新时间 {{ detail.project.updated_at[:10] if detail.project.updated_at else "未知" }}</span>
             </div>
           </div>
           <div class="actions">
             <form method="post" action="/projects/{{ detail.project.id }}/mark">
-              <button name="status" value="watch">标记观察</button>
+              <button name="status" value="watch">观察</button>
             </form>
             <form method="post" action="/projects/{{ detail.project.id }}/mark">
-              <button name="status" value="experiment">Codex 实验</button>
+              <button name="status" value="experiment">实验</button>
             </form>
             <form method="post" action="/projects/{{ detail.project.id }}/reanalyze">
-              <select name="scan_mode" aria-label="重新分析模式">
-                <option value="quick">quick</option>
-                <option value="standard">standard</option>
-                <option value="deep">deep</option>
+              <select name="scan_mode" aria-label="重新分析深度">
+                <option value="quick">快速</option>
+                <option value="standard">标准</option>
+                <option value="deep">深入</option>
               </select>
-              <button>重新分析</button>
+              <button>重扫</button>
             </form>
           </div>
         </header>
 
-        <div class="workspace-body">
+        <div class="workspace-body focus-body">
           <section class="main-detail">
-            <article class="panel">
+            <article class="panel focus-panel">
               <h3>为什么值得看</h3>
-              <div class="detail-grid">
+              <div class="detail-grid compact-grid">
                 <div>
                   <strong>解决的问题</strong>
-                  <p>{{ detail.analysis_json.problem_solved }}</p>
+                  <p>{{ detail.concise_problem }}</p>
                 </div>
                 <div>
-                  <strong>目标用户</strong>
-                  <p>{{ detail.analysis_json.target_users }}</p>
+                  <strong>适合谁看</strong>
+                  <p>{{ detail.concise_users }}</p>
                 </div>
                 <div>
-                  <strong>AI 玩法</strong>
+                  <strong>核心玩法</strong>
                   <p>{{ detail.analysis_json.ai_pattern }}</p>
                 </div>
                 <div>
@@ -143,54 +134,15 @@
               </div>
             </article>
 
-            <article class="panel">
-              <h3>灵感笔记</h3>
-              <div class="stacked">
-                <p><strong>直接价值：</strong>{{ detail.analysis_json.direct_value_for_me }}</p>
-                <p><strong>治理启发：</strong>{{ detail.analysis_json.governance_value }}</p>
-                <p><strong>知识技巧：</strong>{{ detail.analysis_json.knowledge_tips }}</p>
-                <p><strong>灵感价值：</strong>{{ detail.analysis_json.inspiration_value }}</p>
-                <p><strong>可复刻实验：</strong>{{ detail.analysis_json.replicable_mvp }}</p>
-                <p><strong>隐藏成本：</strong>{{ detail.analysis_json.hidden_costs }}</p>
+            <article class="panel notes-panel">
+              <h3>灵感结论</h3>
+              <div class="note-grid">
+                <p><strong>直接价值</strong>{{ detail.analysis_json.direct_value_for_me }}</p>
+                <p><strong>治理启发</strong>{{ detail.analysis_json.governance_value }}</p>
+                <p><strong>知识技巧</strong>{{ detail.analysis_json.knowledge_tips }}</p>
+                <p><strong>可复刻实验</strong>{{ detail.analysis_json.replicable_mvp }}</p>
               </div>
             </article>
-
-            <article class="panel">
-              <h3>关键证据文件</h3>
-              <ul class="evidence-list">
-                {% for path in detail.evidence_files %}
-                  <li>{{ path }}</li>
-                {% else %}
-                  <li>本次判断没有读取关键文件，证据质量应按低分处理。</li>
-                {% endfor %}
-              </ul>
-            </article>
-
-            <details class="panel internal-basis">
-              <summary>证据与后台判断依据</summary>
-              <div class="basis-grid">
-                <strong>初筛结果</strong><span>{{ detail.initial_decision_label }}</span>
-                <strong>最终动作</strong><span>{{ detail.final_action_label }}</span>
-                <strong>目录观察</strong><span>{{ detail.analysis_json.key_directory_observations }}</span>
-                <strong>已读取文件</strong>
-                <span>
-                  {% for file in detail.selected_files %}
-                    <code>{{ file.path }}</code> · {{ file.reason }}<br>
-                  {% else %}
-                    无
-                  {% endfor %}
-                </span>
-                <strong>未读取候选</strong>
-                <span>
-                  {% for file in detail.not_read_files[:10] %}
-                    <code>{{ file.path }}</code> · {{ file.reason }}<br>
-                  {% else %}
-                    没有记录未读取候选。
-                  {% endfor %}
-                </span>
-              </div>
-              <pre>{{ detail.raw_json }}</pre>
-            </details>
           </section>
 
           <aside class="score-panel">
@@ -198,10 +150,10 @@
               <h3>评分摘要</h3>
               <div class="total-score">
                 <strong>{{ detail.analysis_json.total_score }}</strong>
-                <span>/ 5 加权分</span>
+                <span>/ 5</span>
               </div>
               <p class="final-action">{{ detail.final_action_label }}</p>
-              {% for metric in detail.metrics %}
+              {% for metric in detail.metrics[:7] %}
                 <div class="metric">
                   <span>{{ metric.name }}</span>
                   <div class="bar"><i style="width: {{ metric.width }}%"></i></div>
@@ -209,27 +161,12 @@
                 </div>
               {% endfor %}
             </article>
-
-            <article class="panel">
-              <h3>仓库信号</h3>
-              <div class="signal-list">
-                <span>语言：{{ detail.project.language or "未知" }}</span>
-                <span>Forks：{{ detail.project.forks }}</span>
-                <span>默认分支：{{ detail.project.default_branch }}</span>
-                <span>分析时间：{{ detail.analysis.created_at }}</span>
-              </div>
-              <div class="topic-list">
-                {% for topic in detail.topics[:8] %}
-                  <span>{{ topic }}</span>
-                {% endfor %}
-              </div>
-            </article>
           </aside>
         </div>
       {% else %}
         <div class="blank-workspace">
           <h2>先跑一次扫描。</h2>
-          <p>第一个有价值的项目会在这里展示评分、证据和可复刻实验。</p>
+          <p>第一个有价值的项目会在这里展示评分和灵感结论。</p>
         </div>
       {% endif %}
     </section>
