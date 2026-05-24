@@ -1,4 +1,8 @@
-from app.analyzer import MockAnalyzer
+import json
+
+import requests
+
+from app.analyzer import LLMAnalyzer, LLMProfile, MockAnalyzer, get_analyzer, load_llm_profiles
 from app.models import RepoMetadata, SearchIntent, SelectedFile
 
 
@@ -31,3 +35,92 @@ def test_mock_analyzer_scores_inspiration_and_evidence() -> None:
     assert analysis["final_action"] in {"watch", "deep_dive", "codex_experiment"}
     assert "AI agent workflow" not in analysis["problem_solved"]
     assert "智能工作流" in analysis["problem_solved"]
+
+
+def test_load_llm_profiles_supports_primary_and_fallbacks(monkeypatch) -> None:
+    monkeypatch.setenv("LLM_API_KEY", "primary-key")
+    monkeypatch.setenv("LLM_BASE_URL", "https://primary.example/v1")
+    monkeypatch.setenv("LLM_MODEL", "primary-model")
+    monkeypatch.setenv("LLM_FALLBACK_1_API_KEY", "fallback-key")
+    monkeypatch.setenv("LLM_FALLBACK_1_BASE_URL", "https://fallback.example/v1")
+    monkeypatch.setenv("LLM_FALLBACK_1_MODEL", "fallback-model")
+
+    profiles = load_llm_profiles()
+
+    assert [profile.name for profile in profiles] == ["primary", "fallback_1"]
+    assert profiles[0].base_url == "https://primary.example/v1"
+    assert profiles[1].model == "fallback-model"
+
+
+def test_get_analyzer_uses_mock_without_complete_llm_config(monkeypatch) -> None:
+    monkeypatch.setenv("ANALYZER_MODE", "llm")
+    monkeypatch.delenv("LLM_API_KEY", raising=False)
+    monkeypatch.delenv("LLM_MODEL", raising=False)
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+
+    assert isinstance(get_analyzer(), MockAnalyzer)
+
+
+def test_llm_analyzer_falls_back_to_second_profile(monkeypatch) -> None:
+    repo = RepoMetadata(
+        full_name="owner/agent-eval-kit",
+        html_url="https://github.com/owner/agent-eval-kit",
+        description="AI agent workflow eval guardrail prompt automation toolkit",
+        stars=10,
+        forks=2,
+        language="Python",
+        topics=["agent", "eval"],
+        updated_at="2026-01-01T00:00:00Z",
+        default_branch="main",
+    )
+    intent = SearchIntent(keyword="ai agent governance", scan_count=1, scan_mode="quick")
+    files = [SelectedFile("docs/quickstart.md", "documentation", "agent eval guardrail workflow")]
+    calls = []
+
+    class FakeResponse:
+        def __init__(self, ok: bool) -> None:
+            self.ok = ok
+
+        def raise_for_status(self) -> None:
+            if not self.ok:
+                raise requests.HTTPError("quota exceeded")
+
+        def json(self) -> dict:
+            return {
+                "choices": [
+                    {
+                        "message": {
+                            "content": json.dumps(
+                                {
+                                    "one_line_judgment": "中文模型判断",
+                                    "project_type": "Agent",
+                                    "problem_solved": "用于观察智能体项目治理方式。",
+                                    "scores": {"inspiration": 5, "direct_value": 4},
+                                    "final_action": "watch",
+                                    "unknowns": [],
+                                },
+                                ensure_ascii=False,
+                            )
+                        }
+                    }
+                ]
+            }
+
+    def fake_post(url, **kwargs):
+        calls.append(url)
+        return FakeResponse(ok=len(calls) > 1)
+
+    monkeypatch.setattr("app.analyzer.requests.post", fake_post)
+    analyzer = LLMAnalyzer(
+        [
+            LLMProfile("primary", "key1", "https://primary.example/v1", "model-a"),
+            LLMProfile("fallback_1", "key2", "https://fallback.example/v1", "model-b"),
+        ]
+    )
+
+    analysis = analyzer.analyze(repo, intent, "readme", ["docs/quickstart.md"], files)
+
+    assert calls == ["https://primary.example/v1/chat/completions", "https://fallback.example/v1/chat/completions"]
+    assert analysis["analysis_source"] == "llm:fallback_1"
+    assert analysis["one_line_judgment"] == "中文模型判断"
+    assert analysis["scores"]["inspiration"] == 5

@@ -1,8 +1,12 @@
 from __future__ import annotations
 
+import json
 import os
 from abc import ABC, abstractmethod
+from dataclasses import dataclass
 from typing import Any
+
+import requests
 
 from .models import RepoMetadata, SearchIntent, SelectedFile
 
@@ -40,6 +44,14 @@ class AgentAdapter(ABC):
         selected_files: list[SelectedFile],
     ) -> dict[str, Any]:
         raise NotImplementedError
+
+
+@dataclass(frozen=True)
+class LLMProfile:
+    name: str
+    api_key: str
+    base_url: str
+    model: str
 
 
 def text_score(blob: str, terms: set[str]) -> int:
@@ -173,6 +185,11 @@ class MockAnalyzer(AgentAdapter):
 
 
 class LLMAnalyzer(AgentAdapter):
+    def __init__(self, profiles: list[LLMProfile], timeout: int = 60) -> None:
+        self.profiles = profiles
+        self.timeout = timeout
+        self.mock = MockAnalyzer()
+
     def analyze(
         self,
         repo: RepoMetadata,
@@ -181,12 +198,168 @@ class LLMAnalyzer(AgentAdapter):
         tree_paths: list[str],
         selected_files: list[SelectedFile],
     ) -> dict[str, Any]:
-        raise RuntimeError("LLMAnalyzer is reserved for future Codex/OpenAI API integration.")
+        failures: list[str] = []
+        for profile in self.profiles:
+            try:
+                analysis = self._call_profile(profile, repo, intent, readme, tree_paths, selected_files)
+                analysis = self._complete_schema(analysis, repo, intent, readme, tree_paths, selected_files)
+                analysis["analysis_source"] = f"llm:{profile.name}"
+                return analysis
+            except Exception as exc:
+                failures.append(f"{profile.name}: {exc}")
+        analysis = self.mock.analyze(repo, intent, readme, tree_paths, selected_files)
+        analysis["analysis_source"] = "mock_after_llm_failure"
+        analysis.setdefault("unknowns", [])
+        analysis["unknowns"].append("模型接口不可用，已回退到本地规则分析；失败信息保存在原始 JSON。")
+        analysis["llm_failures"] = failures
+        return analysis
+
+    def _call_profile(
+        self,
+        profile: LLMProfile,
+        repo: RepoMetadata,
+        intent: SearchIntent,
+        readme: str,
+        tree_paths: list[str],
+        selected_files: list[SelectedFile],
+    ) -> dict[str, Any]:
+        response = requests.post(
+            profile.base_url.rstrip("/") + "/chat/completions",
+            headers={
+                "Authorization": f"Bearer {profile.api_key}",
+                "Content-Type": "application/json",
+            },
+            json={
+                "model": profile.model,
+                "temperature": 0.2,
+                "response_format": {"type": "json_object"},
+                "messages": [
+                    {
+                        "role": "system",
+                        "content": "你是本地 GitHub AI 项目雷达的中文分析器。只输出合法 JSON，不要输出 Markdown。不确定写未知，不要编造项目能力。",
+                    },
+                    {
+                        "role": "user",
+                        "content": self._prompt(repo, intent, readme, tree_paths, selected_files),
+                    },
+                ],
+            },
+            timeout=self.timeout,
+        )
+        response.raise_for_status()
+        data = response.json()
+        content = data["choices"][0]["message"]["content"]
+        return json.loads(content)
+
+    def _prompt(
+        self,
+        repo: RepoMetadata,
+        intent: SearchIntent,
+        readme: str,
+        tree_paths: list[str],
+        selected_files: list[SelectedFile],
+    ) -> str:
+        payload = {
+            "search_intent": intent.as_dict(),
+            "repo": repo.as_dict(),
+            "readme_excerpt": readme[:6000],
+            "tree_paths": tree_paths[:300],
+            "selected_files": [
+                {"path": item.path, "reason": item.reason, "content": item.content[:2000]}
+                for item in selected_files
+            ],
+            "required_schema": {
+                "one_line_judgment": "中文一句话判断",
+                "project_type": "Agent/RAG/Workflow/Browser/Coding/Eval/KnowledgeBase/Other",
+                "problem_solved": "中文",
+                "target_users": "中文",
+                "input": "中文",
+                "output": "中文",
+                "ai_pattern": "中文",
+                "direct_value_for_me": "中文",
+                "governance_value": "中文",
+                "knowledge_tips": "中文",
+                "inspiration_value": "中文",
+                "replicable_mvp": "中文",
+                "hidden_costs": "中文",
+                "key_directory_observations": "中文",
+                "evidence_files": [],
+                "scores": {
+                    "direct_value": "1-5",
+                    "governance_value": "1-5",
+                    "knowledge_density": "1-5",
+                    "automation_value": "1-5",
+                    "replicability": "1-5",
+                    "inspiration": "1-5",
+                    "evidence_quality": "1-5",
+                    "trial_difficulty": "1-5",
+                    "hidden_cost": "1-5",
+                },
+                "final_action": "direct_try/deep_dive/codex_experiment/watch/skip",
+                "unknowns": [],
+            },
+        }
+        return json.dumps(payload, ensure_ascii=False)
+
+    def _complete_schema(
+        self,
+        analysis: dict[str, Any],
+        repo: RepoMetadata,
+        intent: SearchIntent,
+        readme: str,
+        tree_paths: list[str],
+        selected_files: list[SelectedFile],
+    ) -> dict[str, Any]:
+        fallback = self.mock.analyze(repo, intent, readme, tree_paths, selected_files)
+        merged = {**fallback, **analysis}
+        scores = {**fallback.get("scores", {}), **analysis.get("scores", {})}
+        merged["scores"] = {key: _score_value(value) for key, value in scores.items()}
+        merged["total_score"] = score_average(merged["scores"])
+        merged["analysis_version"] = "0.1"
+        merged["evidence_files"] = list(merged.get("evidence_files") or fallback.get("evidence_files") or [])
+        merged["selected_files"] = [file.as_dict() for file in selected_files]
+        merged["not_read_files"] = []
+        if merged.get("final_action") not in {"direct_try", "deep_dive", "codex_experiment", "watch", "skip"}:
+            merged["final_action"] = fallback["final_action"]
+        return merged
+
+
+def _score_value(value: Any) -> int:
+    try:
+        return max(1, min(5, int(value)))
+    except Exception:
+        return 1
+
+
+def _profile_from_env(prefix: str, name: str, allow_openai_defaults: bool = False) -> LLMProfile | None:
+    api_key = os.getenv(f"{prefix}API_KEY", "")
+    base_url = os.getenv(f"{prefix}BASE_URL", "")
+    model = os.getenv(f"{prefix}MODEL", "")
+    if allow_openai_defaults and not api_key:
+        api_key = os.getenv("OPENAI_API_KEY", "")
+    if allow_openai_defaults and not base_url:
+        base_url = "https://api.openai.com/v1"
+    if not api_key or not base_url or not model:
+        return None
+    return LLMProfile(name=name, api_key=api_key, base_url=base_url, model=model)
+
+
+def load_llm_profiles() -> list[LLMProfile]:
+    profiles: list[LLMProfile] = []
+    primary = _profile_from_env("LLM_", "primary", allow_openai_defaults=True)
+    if primary:
+        profiles.append(primary)
+    for index in range(1, 4):
+        profile = _profile_from_env(f"LLM_FALLBACK_{index}_", f"fallback_{index}")
+        if profile:
+            profiles.append(profile)
+    return profiles
 
 
 def get_analyzer() -> AgentAdapter:
     mode = os.getenv("ANALYZER_MODE", "mock").lower()
-    if mode in {"llm", "codex", "openai"}:
-        if os.getenv("OPENAI_API_KEY") or os.getenv("CODEX_API_KEY"):
-            return LLMAnalyzer()
+    if mode in {"llm", "openai", "openai_compatible"}:
+        profiles = load_llm_profiles()
+        if profiles:
+            return LLMAnalyzer(profiles)
     return MockAnalyzer()

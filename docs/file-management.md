@@ -7,13 +7,14 @@
 - `docs/prd-v0.1.md`：产品定位、边界、核心流程和 UX 决策。
 - `docs/acceptance-v0.1.md`：验收范围、成功边界、失败边界和自测要求。
 - `docs/file-management.md`：本文件，登记文件职责与后续维护规则。
+- `docs/github-release-checklist.md`：GitHub 上架前检查项和发布边界。
 
 ## 应用代码
 
 - `app/main.py`：FastAPI 路由、启动初始化、表单处理、页面渲染。
 - `app/db.py`：SQLite 表结构、连接工具、扫描/项目/分析结果持久化。
 - `app/github_client.py`：GitHub REST API 访问，只读接口，不 clone 仓库。
-- `app/analyzer.py`：`AgentAdapter`、`MockAnalyzer`、未来 LLM/Codex 分析器边界。
+- `app/analyzer.py`：`AgentAdapter`、`MockAnalyzer`、OpenAI-compatible `LLMAnalyzer` 和备用模型接口读取。
 - `app/scanner.py`：扫描编排、搜索意图扩展、三道判断门、去重、文件读取预算。
 - `app/models.py`：扫描器、分析器、模板共享的数据结构。
 - `app/templates/index.html`：中文一屏工作台 UI。

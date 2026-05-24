@@ -463,7 +463,7 @@ PASS 库只作为后端能力存在：
 Analyzer 设计：
 
 - `AgentAdapter` 抽象接口
-- `CodexAnalyzer` / `LLMAnalyzer`：主分析器，占位或按可用 API 实现
+- `LLMAnalyzer`：主分析器，使用 OpenAI-compatible `/chat/completions` 接口，可配置主模型和备用模型
 - `MockAnalyzer`：无 API key 时兜底跑通闭环
 
 环境变量：
@@ -471,15 +471,21 @@ Analyzer 设计：
 ```text
 GITHUB_TOKEN=
 OPENAI_API_KEY=
-CODEX_API_KEY=
+ANALYZER_MODE=mock
+LLM_API_KEY=
+LLM_BASE_URL=
+LLM_MODEL=
+LLM_FALLBACK_1_API_KEY=
+LLM_FALLBACK_1_BASE_URL=
+LLM_FALLBACK_1_MODEL=
 ```
 
 规则：
 
 - GitHub token 可选，但有 token 时优先使用
-- API key 只从本地 `.env` 读取
+- 模型 API key 只从本地 `.env` 读取
 - 不要求用户把真实 key 贴到聊天窗口
-- 如果 Codex API 调用方式不确定，不编造，保留接口和 TODO
+- v0.1 不绑定 Codex key，统一按 OpenAI-compatible 模型接口接入
 
 ## 13. 数据库设计
 
@@ -618,8 +624,8 @@ v0.1 完成后应满足：
 ## 17. 已知限制
 
 - v0.1 以同步扫描为主，扫描过程中页面可能等待
-- MockAnalyzer 只能做规则化分析，不能替代真实 Codex 判断
-- Codex API 调用方式如果不确定，先保留接口，不编造实现
+- MockAnalyzer 只能做规则化分析，不能替代真实模型判断
+- OpenAI-compatible 模型服务的兼容度由用户选择的供应商决定
 - GitHub Search API 的结果质量受关键词影响
 - Issues / Discussions 的读取可先轻量实现，避免消耗过多请求
 - 初版评分权重需要通过真实扫描结果继续校准
