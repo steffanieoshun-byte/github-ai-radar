@@ -66,6 +66,7 @@ SKIP_SUFFIXES = (
 )
 
 MODE_BUDGETS = {"quick": 2, "standard": 8, "deep": 20}
+DISPLAY_ACTIONS = {"direct_try", "deep_dive", "codex_experiment", "watch"}
 
 KEYWORD_ALIASES = {
     "智能体治理": "ai agent governance",
@@ -92,7 +93,11 @@ def build_queries(intent: SearchIntent) -> list[str]:
     queries = [base]
     for direction in intent.directions:
         queries.append(f"{keyword} {direction} in:name,description,readme fork:false archived:false")
-    return queries[: max(1, min(len(queries), intent.scan_count + 1))]
+    return queries
+
+
+def candidate_limit(intent: SearchIntent) -> int:
+    return min(max(intent.scan_count * 8, 20), 120)
 
 
 def shell_decision(repo: RepoMetadata, readme: str, intent: SearchIntent) -> tuple[str, str]:
@@ -176,23 +181,26 @@ class RadarScanner:
         recommended_count = 0
         try:
             queries = build_queries(intent)
-            per_query = max(1, min(10, intent.scan_count))
+            target_candidates = candidate_limit(intent)
+            per_query = max(10, min(20, target_candidates))
             for query in queries:
                 for repo in self.client.search_repositories(query, per_page=per_query):
                     if repo.full_name not in discovered:
                         discovered[repo.full_name] = repo
-                    if len(discovered) >= intent.scan_count:
+                    if len(discovered) >= target_candidates:
                         break
-                if len(discovered) >= intent.scan_count:
+                if len(discovered) >= target_candidates:
                     break
-            for repo in list(discovered.values())[: intent.scan_count]:
+            for repo in list(discovered.values()):
                 result = self._process_repo(conn, run_id, repo, intent)
                 if result["initial_decision"] == "PASS":
                     passed_count += 1
                 else:
                     analyzed_count += 1
-                if result["final_action"] in {"direct_try", "deep_dive", "codex_experiment", "watch"}:
+                if result["final_action"] in DISPLAY_ACTIONS and result.get("displayable") == "yes":
                     recommended_count += 1
+                if recommended_count >= intent.scan_count:
+                    break
             db.complete_run(
                 conn,
                 run_id,
@@ -215,6 +223,8 @@ class RadarScanner:
         force: bool = False,
     ) -> dict[str, str]:
         project_id = db.upsert_project(conn, repo.as_dict())
+        project = db.get_project(conn, project_id)
+        is_hidden = bool(project and project["status"] == "hidden")
         latest = db.latest_analysis(conn, project_id)
         if latest and not force and similar_intent(latest["search_intent_json"], intent):
             latest_analysis = json.loads(latest["analysis_json"])
@@ -239,7 +249,7 @@ class RadarScanner:
                 pass_stage="shell",
                 pass_reason=reason,
             )
-            return {"initial_decision": "PASS", "final_action": "skip"}
+            return {"initial_decision": "PASS", "final_action": "skip", "displayable": "no"}
         tree_paths = self.client.get_tree(repo.full_name, repo.default_branch)
         if decision in {"ANALYZE", "DEEP"}:
             matched, tree_reason = tree_matches(tree_paths)
@@ -260,7 +270,7 @@ class RadarScanner:
                     pass_stage="tree",
                     pass_reason=tree_reason,
                 )
-                return {"initial_decision": "PASS", "final_action": "skip"}
+                return {"initial_decision": "PASS", "final_action": "skip", "displayable": "no"}
         selected, not_read = select_files(tree_paths, intent.scan_mode)
         hydrated = []
         for item in selected:
@@ -281,7 +291,11 @@ class RadarScanner:
             not_read,
             intent.scan_mode,
         )
-        return {"initial_decision": decision, "final_action": final_action}
+        return {
+            "initial_decision": decision,
+            "final_action": final_action,
+            "displayable": "no" if is_hidden or final_action not in DISPLAY_ACTIONS else "yes",
+        }
 
     def _reuse_previous_analysis(
         self,
@@ -312,7 +326,14 @@ class RadarScanner:
             pass_stage="reuse" if latest["final_action"] == "skip" else (latest["pass_stage"] or ""),
             pass_reason=latest["pass_reason"] or "",
         )
-        return {"initial_decision": latest["initial_decision"], "final_action": latest["final_action"]}
+        project = db.get_project(conn, project_id)
+        is_hidden = bool(project and project["status"] == "hidden")
+        final_action = latest["final_action"]
+        return {
+            "initial_decision": latest["initial_decision"],
+            "final_action": final_action,
+            "displayable": "no" if is_hidden or final_action not in DISPLAY_ACTIONS else "yes",
+        }
 
     def _pass_analysis(self, repo: RepoMetadata, reason: str) -> dict[str, Any]:
         return {

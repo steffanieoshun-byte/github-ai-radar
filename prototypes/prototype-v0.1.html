@@ -114,8 +114,13 @@
       padding: 4px 8px 10px;
     }
     .item {
+      position: relative;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 6px;
+      align-items: start;
       margin: 4px 0;
-      padding: 8px 9px;
+      padding: 7px 7px 7px 9px;
       border: 1px solid transparent;
       border-radius: 7px;
       background: rgba(255,255,255,0.76);
@@ -123,6 +128,9 @@
     .item.active {
       border-color: #b7d9c5;
       background: #fff;
+    }
+    .item-link {
+      min-width: 0;
     }
     .item-head {
       display: grid;
@@ -151,16 +159,26 @@
       padding: 3px 7px;
       font-size: 10px;
     }
+    .delete {
+      width: 34px;
+      height: 24px;
+      padding: 0;
+      border-color: var(--line);
+      background: #fff;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 800;
+    }
     main {
       overflow: hidden;
       display: grid;
       grid-template-rows: auto minmax(0, 1fr);
     }
     .head {
-      padding: 18px 24px 16px;
+      padding: 14px 24px 12px;
       border-bottom: 1px solid var(--line);
       display: grid;
-      grid-template-columns: minmax(0, 1fr) auto;
+      grid-template-columns: minmax(0, 1fr);
       gap: 18px;
     }
     .meta {
@@ -173,26 +191,13 @@
       color: var(--blue);
       font-weight: 900;
     }
-    .actions {
-      display: flex;
-      gap: 8px;
-      align-items: start;
-    }
-    .actions span {
-      height: 34px;
-      border: 1px solid var(--line);
-      border-radius: 7px;
-      padding: 6px 10px;
-      font-weight: 900;
-      background: #fff;
-    }
     .body {
       min-height: 0;
       overflow: hidden;
       display: grid;
-      grid-template-columns: minmax(0, 1fr) 310px;
-      gap: 16px;
-      padding: 16px 24px 18px;
+      grid-template-columns: minmax(0, 1fr) 286px;
+      gap: 14px;
+      padding: 14px 24px 16px;
       background: #f5f7f8;
     }
     .main-detail {
@@ -206,26 +211,29 @@
       border-radius: 8px;
       background: #fff;
     }
-    .signal-tags {
+    .worth-intro {
+      max-width: 1050px;
+      margin-bottom: 12px;
+      color: #34443c;
+      font-size: 15px;
+      line-height: 1.62;
+    }
+    .worth-tags {
       display: flex;
       flex-wrap: wrap;
-      gap: 10px;
+      gap: 8px;
     }
-    .signal-tags span {
+    .worth-tags span {
       display: inline-flex;
       align-items: center;
-      gap: 7px;
-      min-height: 34px;
+      min-height: 30px;
       border: 1px solid #dbe7df;
       border-radius: 999px;
       background: var(--soft);
       color: #34443c;
-      padding: 6px 12px;
-      font-size: 14px;
-    }
-    .signal-tags b {
-      color: var(--green);
-      font-size: 12px;
+      padding: 5px 11px;
+      font-size: 13px;
+      font-weight: 800;
     }
     .narrative {
       display: grid;
@@ -235,21 +243,21 @@
     .narrative p {
       margin: 0;
       color: #34443c;
-      font-size: 16px;
+      font-size: 15px;
       line-height: 1.72;
     }
     .total strong {
       color: var(--green);
-      font-size: 52px;
+      font-size: 48px;
       line-height: 1;
     }
     .metric {
       display: grid;
-      grid-template-columns: 86px 1fr 22px;
+      grid-template-columns: 78px 1fr 20px;
       gap: 8px;
       margin-top: 11px;
       align-items: center;
-      font-size: 13px;
+      font-size: 12px;
     }
     .bar {
       height: 8px;
@@ -284,14 +292,14 @@
         <span class="chip">实验</span>
       </nav>
       <section class="list">
-        <article class="item active"><div class="item-head"><strong>aaif-goose/goose</strong><span class="score">4.2</span></div><div class="tags"><span class="tag">本地实验</span><span class="tag">智能体</span></div></article>
-        <article class="item"><div class="item-head"><strong>paperclipai/paperclip</strong><span class="score">4.1</span></div><div class="tags"><span class="tag">本地实验</span><span class="tag">工作流</span></div></article>
-        <article class="item"><div class="item-head"><strong>open-metadata/OpenMetadata</strong><span class="score">4.0</span></div><div class="tags"><span class="tag">深挖</span><span class="tag">治理</span></div></article>
-        <article class="item"><div class="item-head"><strong>promptfoo/promptfoo</strong><span class="score">3.9</span></div><div class="tags"><span class="tag">观察</span><span class="tag">评测治理</span></div></article>
-        <article class="item"><div class="item-head"><strong>langchain-ai/langgraph</strong><span class="score">3.8</span></div><div class="tags"><span class="tag">深挖</span><span class="tag">工作流</span></div></article>
-        <article class="item"><div class="item-head"><strong>browser-use/browser-use</strong><span class="score">3.7</span></div><div class="tags"><span class="tag">观察</span><span class="tag">浏览器</span></div></article>
-        <article class="item"><div class="item-head"><strong>openai/openai-agents-python</strong><span class="score">3.7</span></div><div class="tags"><span class="tag">深挖</span><span class="tag">智能体</span></div></article>
-        <article class="item"><div class="item-head"><strong>microsoft/autogen</strong><span class="score">3.6</span></div><div class="tags"><span class="tag">观察</span><span class="tag">智能体</span></div></article>
+        <article class="item active"><div class="item-link"><div class="item-head"><strong>aaif-goose/goose</strong><span class="score">4.2</span></div><div class="tags"><span class="tag">本地实验</span><span class="tag">智能体</span></div></div><button class="delete">删除</button></article>
+        <article class="item"><div class="item-link"><div class="item-head"><strong>paperclipai/paperclip</strong><span class="score">4.1</span></div><div class="tags"><span class="tag">本地实验</span><span class="tag">工作流</span></div></div><button class="delete">删除</button></article>
+        <article class="item"><div class="item-link"><div class="item-head"><strong>open-metadata/OpenMetadata</strong><span class="score">4.0</span></div><div class="tags"><span class="tag">深挖</span><span class="tag">治理</span></div></div><button class="delete">删除</button></article>
+        <article class="item"><div class="item-link"><div class="item-head"><strong>promptfoo/promptfoo</strong><span class="score">3.9</span></div><div class="tags"><span class="tag">观察</span><span class="tag">评测治理</span></div></div><button class="delete">删除</button></article>
+        <article class="item"><div class="item-link"><div class="item-head"><strong>langchain-ai/langgraph</strong><span class="score">3.8</span></div><div class="tags"><span class="tag">深挖</span><span class="tag">工作流</span></div></div><button class="delete">删除</button></article>
+        <article class="item"><div class="item-link"><div class="item-head"><strong>browser-use/browser-use</strong><span class="score">3.7</span></div><div class="tags"><span class="tag">观察</span><span class="tag">浏览器</span></div></div><button class="delete">删除</button></article>
+        <article class="item"><div class="item-link"><div class="item-head"><strong>openai/openai-agents-python</strong><span class="score">3.7</span></div><div class="tags"><span class="tag">深挖</span><span class="tag">智能体</span></div></div><button class="delete">删除</button></article>
+        <article class="item"><div class="item-link"><div class="item-head"><strong>microsoft/autogen</strong><span class="score">3.6</span></div><div class="tags"><span class="tag">观察</span><span class="tag">智能体</span></div></div><button class="delete">删除</button></article>
       </section>
     </aside>
     <main>
@@ -302,27 +310,27 @@
           <p>这个项目可能包含可复用的智能体工作流、治理经验或灵感线索。</p>
           <div class="meta"><a>打开仓库</a><span>收藏 45777</span><span>更新时间 2026-05-24</span></div>
         </div>
-        <div class="actions"><span>加入观察</span><span>设为实验候选</span><span>重扫</span></div>
       </header>
       <section class="body">
         <div class="main-detail">
           <article class="panel">
             <h3>为什么值得看</h3>
-            <div class="signal-tags">
-              <span><b>方向</b>智能体</span>
-              <span><b>建议</b>本地实验</span>
-              <span><b>证据</b>已读 2 个关键文件</span>
-              <span><b>用途</b>提炼本地小实验</span>
-              <span><b>读法</b>先看结构再深挖</span>
-              <span><b>风险</b>证据不足则低分</span>
+            <p class="worth-intro">这条进入前台，不是因为热度，而是因为它可能提供“智能体”方向的灵感。当前看到的核心玩法是：智能体编排、工作流自动化和提示词管理。</p>
+            <div class="worth-tags">
+              <span>可学：智能体</span>
+              <span>可能拆出小实验</span>
+              <span>有自动化线索</span>
+              <span>知识密度较高</span>
+              <span>本地实验</span>
             </div>
           </article>
           <article class="panel">
             <h3>灵感结论</h3>
             <div class="narrative">
-              <p>我的判断：这个结果不是让你照搬整个仓库，而是判断它能不能成为灵感来源。重点看它有没有新的组织方式、自动化流程、治理规则，或者能拆出来的小技巧。</p>
-              <p>可以怎么用：先把它当成一个样本，观察它如何安排能力、示例、运行入口和规则边界；如果能拆出一个清楚的小动作，就标成实验候选。</p>
-              <p>继续看的重点：先看文档、示例、模板、提示词和安装配置。读源码不是第一步，只有当结构真的有启发时再深入。</p>
+              <p>它大概在做什么：这个仓库展示了一个可扩展的本地智能体工具，重点不是让你马上采用它，而是看它如何把能力、命令、运行入口和规则边界组织起来。</p>
+              <p>可能带来的灵感：它适合作为“本地工作流怎么被智能体接管”的样本。哪怕整个项目太重，也可能拆出一个小技巧，比如任务入口设计、提示词组织方式、评测规则或失败恢复机制。</p>
+              <p>最小可复刻动作：抽取一个工作流、提示词模式、评测规则或启动模板，在本地先做一个小实验。目标是验证灵感是否能迁移，不是完整复刻项目。</p>
+              <p>继续阅读的判断：先看文档、示例、模板、提示词和安装配置，再决定是否读源码。若它只讲概念没有可运行入口，就先观察，不占用主列表注意力。</p>
             </div>
           </article>
         </div>

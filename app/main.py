@@ -182,6 +182,29 @@ def _detail_view(detail: dict[str, Any] | None) -> dict[str, Any] | None:
         ("试用难度", scores.get("trial_difficulty", 0)),
         ("隐藏成本", scores.get("hidden_cost", 0)),
     ]
+    worth_tags = [
+        f"可学：{PROJECT_TYPE_LABELS.get(analysis_json.get('project_type', 'Other'), '其他')}",
+        "可能拆出小实验" if scores.get("replicability", 0) >= 3 else "先观察再决定",
+    ]
+    if scores.get("governance_value", 0) >= 3:
+        worth_tags.append("有治理启发")
+    if scores.get("knowledge_density", 0) >= 3:
+        worth_tags.append("知识密度较高")
+    if scores.get("automation_value", 0) >= 3:
+        worth_tags.append("有自动化线索")
+    worth_tags.append(ACTION_LABELS.get(analysis["final_action"], analysis["final_action"]))
+    problem = analysis_json.get("problem_solved", "未知")
+    ai_pattern = analysis_json.get("ai_pattern", "未知")
+    direct_value = analysis_json.get("direct_value_for_me", "未知")
+    governance_value = analysis_json.get("governance_value", "未知")
+    knowledge_tips = analysis_json.get("knowledge_tips", "未知")
+    inspiration_value = analysis_json.get("inspiration_value", "未知")
+    replicable_mvp = analysis_json.get("replicable_mvp", "未知")
+    hidden_costs = analysis_json.get("hidden_costs", "未知")
+    worth_intro = (
+        f"这条进入前台，不是因为热度，而是因为它可能提供“{PROJECT_TYPE_LABELS.get(analysis_json.get('project_type', 'Other'), '其他')}”方向的灵感。"
+        f"当前看到的核心玩法是：{ai_pattern}。"
+    )
     return {
         "project": project,
         "analysis": analysis,
@@ -197,18 +220,13 @@ def _detail_view(detail: dict[str, Any] | None) -> dict[str, Any] | None:
         "final_action_label": ACTION_LABELS.get(analysis["final_action"], analysis["final_action"]),
         "initial_decision_label": DECISION_LABELS.get(analysis["initial_decision"], analysis["initial_decision"]),
         "project_type_label": PROJECT_TYPE_LABELS.get(analysis_json.get("project_type", "Other"), analysis_json.get("project_type", "Other")),
-        "signal_tags": [
-            ("方向", PROJECT_TYPE_LABELS.get(analysis_json.get("project_type", "Other"), "其他")),
-            ("建议", ACTION_LABELS.get(analysis["final_action"], analysis["final_action"])),
-            ("证据", f"已读 {len(detail['evidence_files'])} 个关键文件"),
-            ("用途", "提炼本地小实验"),
-            ("读法", "先看结构再决定是否深挖"),
-            ("风险", "证据不足则低分处理"),
-        ],
+        "worth_intro": worth_intro,
+        "worth_tags": worth_tags,
         "inspiration_paragraphs": [
-            f"我的判断：{analysis_json.get('one_line_judgment', '')} 这个结果不是让你照搬整个仓库，而是判断它能不能成为灵感来源：有没有新的组织方式、自动化流程、治理规则或可拆出来的小技巧。",
-            f"可以怎么用：{analysis_json.get('replicable_mvp', '')} 如果只是泛泛而谈，就先放入观察；如果能拆出一个清楚的小动作，就标成实验候选。",
-            f"继续看的重点：{analysis_json.get('knowledge_tips', '')} 读源码不是第一步，先看它如何安排文档、示例、运行入口和规则边界。",
+            f"它大概在做什么：{problem}。我关心的不是这个仓库本身有多大，而是它有没有把一个智能工作流、治理方法、知识技巧或自动化动作讲清楚。",
+            f"可能带来的灵感：{inspiration_value} {direct_value} 如果它能展示新的组织方式、流程拆法、边界控制或小技巧，就值得留下。",
+            f"最小可复刻动作：{replicable_mvp} 这个动作应该足够小，可以在本地先做一个实验，而不是一上来复刻整个项目。",
+            f"继续阅读的判断：{knowledge_tips} {governance_value} 成本侧要注意：{hidden_costs}。",
         ],
     }
 
@@ -279,6 +297,14 @@ def mark_project(project_id: int, status: str = Form(...)) -> RedirectResponse:
         if status in allowed:
             db.update_project_status(conn, project_id, allowed[status])
     return RedirectResponse(f"/?project_id={project_id}&message=项目状态已更新", status_code=303)
+
+
+@app.post("/projects/{project_id}/hide")
+def hide_project(project_id: int) -> RedirectResponse:
+    with db.connection() as conn:
+        db.init_db(conn)
+        db.update_project_status(conn, project_id, "hidden")
+    return RedirectResponse("/?message=已从前台移除，后台仍保留记录", status_code=303)
 
 
 @app.post("/projects/{project_id}/reanalyze")

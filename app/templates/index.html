@@ -59,16 +59,21 @@
 
       <section class="library-list compact-list" aria-label="项目列表">
         {% for item in library %}
-          <a class="library-item {{ 'selected' if detail and detail.project.id == item.id else '' }}" href="/?filter={{ filter_name }}&project_id={{ item.id }}">
-            <div class="item-head">
-              <strong>{{ item.repo_full_name }}</strong>
-              <span>{{ item.total_score }}</span>
-            </div>
-            <div class="tags tight-tags">
-              <span>{{ item.final_action_label }}</span>
-              <span>{{ item.project_type_label }}</span>
-            </div>
-          </a>
+          <article class="library-item {{ 'selected' if detail and detail.project.id == item.id else '' }}">
+            <a class="library-link" href="/?filter={{ filter_name }}&project_id={{ item.id }}">
+              <div class="item-head">
+                <strong>{{ item.repo_full_name }}</strong>
+                <span>{{ item.total_score }}</span>
+              </div>
+              <div class="tags tight-tags">
+                <span>{{ item.final_action_label }}</span>
+                <span>{{ item.project_type_label }}</span>
+              </div>
+            </a>
+            <form class="delete-form" method="post" action="/projects/{{ item.id }}/hide">
+              <button class="delete-btn" type="submit" title="从前台列表移除，后台仍保留记录">删除</button>
+            </form>
+          </article>
         {% else %}
           <div class="empty-state">
             <strong>还没有灵感项目。</strong>
@@ -91,31 +96,16 @@
               <span>更新时间 {{ detail.project.updated_at[:10] if detail.project.updated_at else "未知" }}</span>
             </div>
           </div>
-          <div class="actions">
-            <form method="post" action="/projects/{{ detail.project.id }}/mark">
-              <button name="status" value="watch" title="暂时保留，后续再看">加入观察</button>
-            </form>
-            <form method="post" action="/projects/{{ detail.project.id }}/mark">
-              <button name="status" value="experiment" title="值得拆一个本地小实验">设为实验候选</button>
-            </form>
-            <form method="post" action="/projects/{{ detail.project.id }}/reanalyze">
-              <select name="scan_mode" aria-label="重新分析深度">
-                <option value="quick">快速</option>
-                <option value="standard">标准</option>
-                <option value="deep">深入</option>
-              </select>
-              <button>重扫</button>
-            </form>
-          </div>
         </header>
 
         <div class="workspace-body focus-body">
           <section class="main-detail">
             <article class="panel focus-panel">
               <h3>为什么值得看</h3>
-              <div class="signal-tags">
-                {% for name, value in detail.signal_tags %}
-                  <span><b>{{ name }}</b>{{ value }}</span>
+              <p class="worth-intro">{{ detail.worth_intro }}</p>
+              <div class="worth-tags">
+                {% for value in detail.worth_tags %}
+                  <span>{{ value }}</span>
                 {% endfor %}
               </div>
             </article>

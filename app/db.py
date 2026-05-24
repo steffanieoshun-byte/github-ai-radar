@@ -257,11 +257,15 @@ def insert_analysis(
             utc_now(),
         ),
     )
-    status = "passed" if final_action == "skip" else "analyzed"
-    if final_action == "watch":
-        status = "watch"
-    if final_action == "codex_experiment":
-        status = "experiment_candidate"
+    current = conn.execute("SELECT status FROM projects WHERE id = ?", (project_id,)).fetchone()
+    current_status = current["status"] if current else ""
+    status = current_status
+    if current_status != "hidden":
+        status = "passed" if final_action == "skip" else "analyzed"
+        if final_action == "watch":
+            status = "watch"
+        if final_action == "codex_experiment":
+            status = "experiment_candidate"
     conn.execute(
         "UPDATE projects SET status = ?, last_analyzed_at = ? WHERE id = ?",
         (status, utc_now(), project_id),
@@ -288,7 +292,7 @@ def update_project_status(conn: sqlite3.Connection, project_id: int, status: str
 
 
 def list_library(conn: sqlite3.Connection, filter_name: str = "all") -> list[sqlite3.Row]:
-    conditions = ["a.initial_decision != 'PASS'"]
+    conditions = ["p.status != 'hidden'", "a.initial_decision != 'PASS'", "a.final_action != 'skip'"]
     params: list[Any] = []
     if filter_name == "watch":
         conditions.append("p.status = 'watch'")
@@ -336,7 +340,7 @@ def get_project_detail(conn: sqlite3.Connection, project_id: int | None) -> dict
             SELECT p.id
             FROM projects p
             JOIN project_analyses a ON a.project_id = p.id
-            WHERE a.final_action != 'skip'
+            WHERE p.status != 'hidden' AND a.final_action != 'skip'
             ORDER BY a.id DESC
             LIMIT 1
             """
@@ -345,7 +349,7 @@ def get_project_detail(conn: sqlite3.Connection, project_id: int | None) -> dict
             return None
         project_id = int(row["id"])
     project = conn.execute("SELECT * FROM projects WHERE id = ?", (project_id,)).fetchone()
-    if not project:
+    if not project or project["status"] == "hidden":
         return None
     analysis = latest_analysis(conn, project_id)
     if not analysis:

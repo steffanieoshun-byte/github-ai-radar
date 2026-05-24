@@ -222,12 +222,21 @@ button,
 }
 
 .library-item {
-  display: block;
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 6px;
+  align-items: start;
   margin: 4px 0;
-  padding: 8px 9px;
+  padding: 7px 7px 7px 9px;
   border: 1px solid transparent;
   border-radius: 7px;
   background: rgba(255, 255, 255, 0.76);
+}
+
+.library-link {
+  min-width: 0;
+  display: block;
 }
 
 .library-item.selected {
@@ -269,6 +278,27 @@ button,
   font-size: 10px;
 }
 
+.delete-form {
+  margin: 0;
+}
+
+.delete-btn {
+  width: 34px;
+  height: 24px;
+  padding: 0;
+  border-radius: 6px;
+  color: var(--muted);
+  background: #fff;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.delete-btn:hover {
+  border-color: #d7b5b5;
+  color: var(--red);
+  background: #fff7f7;
+}
+
 .empty-state {
   margin: 8px 0;
   padding: 14px;
@@ -280,10 +310,10 @@ button,
 }
 
 .workspace-head {
-  padding: 18px 24px 16px;
+  padding: 14px 24px 12px;
   border-bottom: 1px solid var(--line);
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr);
   gap: 18px;
   align-items: start;
 }
@@ -308,29 +338,13 @@ button,
   font-weight: 900;
 }
 
-.actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  justify-content: flex-end;
-}
-
-.actions form {
-  display: flex;
-  gap: 8px;
-}
-
-.actions select {
-  width: 82px;
-}
-
 .workspace-body {
   min-height: 0;
   overflow: hidden;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 310px;
-  gap: 16px;
-  padding: 16px 24px 18px;
+  grid-template-columns: minmax(0, 1fr) 286px;
+  gap: 14px;
+  padding: 14px 24px 16px;
   background: #f5f7f8;
 }
 
@@ -354,28 +368,31 @@ button,
   overflow: hidden;
 }
 
-.signal-tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
+.worth-intro {
+  max-width: 1050px;
+  margin-bottom: 12px;
+  color: #34443c;
+  font-size: 15px;
+  line-height: 1.62;
 }
 
-.signal-tags span {
+.worth-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.worth-tags span {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
-  min-height: 34px;
+  min-height: 30px;
   border: 1px solid #dbe7df;
   border-radius: 999px;
   background: var(--soft);
   color: #34443c;
-  padding: 6px 12px;
-  font-size: 14px;
-}
-
-.signal-tags b {
-  color: var(--green);
-  font-size: 12px;
+  padding: 5px 11px;
+  font-size: 13px;
+  font-weight: 800;
 }
 
 .narrative {
@@ -387,7 +404,7 @@ button,
 .narrative p {
   margin: 0;
   color: #34443c;
-  font-size: 16px;
+  font-size: 15px;
   line-height: 1.72;
 }
 
@@ -407,7 +424,7 @@ button,
 
 .total-score strong {
   color: var(--green);
-  font-size: 52px;
+  font-size: 48px;
   line-height: 1;
 }
 
@@ -424,11 +441,11 @@ button,
 
 .metric {
   display: grid;
-  grid-template-columns: 86px 1fr 22px;
+  grid-template-columns: 78px 1fr 20px;
   gap: 8px;
   align-items: center;
-  margin-top: 11px;
-  font-size: 13px;
+  margin-top: 10px;
+  font-size: 12px;
 }
 
 .bar {

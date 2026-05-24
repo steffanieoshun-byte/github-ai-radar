@@ -55,6 +55,11 @@ class FakeGitHubClient:
         return f"{path} contains agent eval workflow guardrail example"
 
 
+class NoisyFirstGitHubClient(FakeGitHubClient):
+    def search_repositories(self, query: str, per_page: int = 10) -> list[RepoMetadata]:
+        return [self.bad, self.good]
+
+
 def make_conn(tmp_path):
     conn = sqlite3.connect(tmp_path / "radar.sqlite3")
     conn.row_factory = sqlite3.Row
@@ -79,6 +84,33 @@ def test_chinese_keyword_options_search_with_english_query_terms() -> None:
 
     assert search_keyword("智能体治理") == "ai agent governance"
     assert "ai agent governance" in queries[0]
+
+
+def test_scanner_uses_candidate_pool_until_target_display_count(tmp_path) -> None:
+    conn = make_conn(tmp_path)
+    scanner = RadarScanner(client=NoisyFirstGitHubClient(), analyzer=MockAnalyzer())
+
+    run_id = scanner.run(conn, "Noisy first", "ai agent governance", 1, "quick")
+    conn.commit()
+
+    run = db.get_run(conn, run_id)
+    rows = conn.execute(
+        """
+        SELECT p.repo_full_name, a.final_action
+        FROM project_analyses a
+        JOIN projects p ON p.id = a.project_id
+        ORDER BY a.id
+        """
+    ).fetchall()
+
+    assert run["discovered_count"] == 2
+    assert run["passed_count"] == 1
+    assert run["recommended_count"] == 1
+    assert rows[0]["repo_full_name"] == "owner/weather"
+    assert rows[0]["final_action"] == "skip"
+    assert rows[1]["repo_full_name"] == "owner/good-agent"
+    assert rows[1]["final_action"] != "skip"
+    conn.close()
 
 
 def test_scanner_persists_passes_and_reuses_similar_intent(tmp_path) -> None:
