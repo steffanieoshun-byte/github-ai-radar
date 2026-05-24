@@ -90,14 +90,14 @@ def shell_decision(repo: RepoMetadata, readme: str, intent: SearchIntent) -> tup
     evidence_terms = {"example", "examples", "template", "demo", "docs", "quickstart", "workflow", "eval", "guardrail"}
     evidence_hits = sum(1 for term in evidence_terms if term in shell_blob)
     if not readme.strip() and ai_hits == 0 and keyword_hits == 0:
-        return "PASS", "No README signal and weak AI/automation relevance."
+        return "PASS", "没有 README 信号，且 AI/自动化相关性较弱。"
     if ai_hits >= 5 or (keyword_hits >= 2 and evidence_hits >= 2):
         return "DEEP", ""
     if ai_hits >= 2 or keyword_hits >= 2 or (keyword_hits >= 1 and evidence_hits >= 1):
         return "ANALYZE", ""
     if ai_hits >= 1 or keyword_hits >= 1:
         return "LIGHT", ""
-    return "PASS", "Shell metadata does not match the current AI inspiration intent."
+    return "PASS", "壳信息与当前 AI 灵感搜索意图不匹配。"
 
 
 def tree_matches(tree_paths: list[str]) -> tuple[bool, str]:
@@ -108,7 +108,7 @@ def tree_matches(tree_paths: list[str]) -> tuple[bool, str]:
     ]
     if interesting:
         return True, ""
-    return False, "Directory tree lacks docs, examples, prompts, workflows, evals, skills, or starter evidence."
+    return False, "目录树缺少 docs、examples、prompts、workflows、evals、skills 或 starter 证据。"
 
 
 def eligible_path(path: str) -> bool:
@@ -304,19 +304,19 @@ class RadarScanner:
     def _pass_analysis(self, repo: RepoMetadata, reason: str) -> dict[str, Any]:
         return {
             "analysis_version": "0.1",
-            "one_line_judgment": f"{repo.full_name} was filtered out for this scan.",
+            "one_line_judgment": f"{repo.full_name} 在本次扫描中被过滤。",
             "project_type": "Other",
-            "problem_solved": repo.description or "UNKNOWN",
-            "target_users": "UNKNOWN",
-            "input": "UNKNOWN",
-            "output": "UNKNOWN",
-            "ai_pattern": "UNKNOWN",
-            "direct_value_for_me": "Low for this search intent.",
-            "governance_value": "UNKNOWN",
-            "knowledge_tips": "UNKNOWN",
-            "inspiration_value": "Low evidence for current intent.",
-            "replicable_mvp": "UNKNOWN",
-            "hidden_costs": "UNKNOWN",
+            "problem_solved": repo.description or "未知",
+            "target_users": "未知",
+            "input": "未知",
+            "output": "未知",
+            "ai_pattern": "未知",
+            "direct_value_for_me": "对当前搜索意图价值较低。",
+            "governance_value": "未知",
+            "knowledge_tips": "未知",
+            "inspiration_value": "当前意图下证据不足，灵感价值较低。",
+            "replicable_mvp": "未知",
+            "hidden_costs": "未知",
             "key_directory_observations": reason,
             "evidence_files": [],
             "selected_files": [],

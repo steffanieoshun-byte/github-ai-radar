@@ -129,19 +129,19 @@ class MockAnalyzer(AgentAdapter):
             project_type = "Eval"
         return {
             "analysis_version": "0.1",
-            "one_line_judgment": f"{repo.full_name} may provide reusable AI workflow or governance inspiration.",
+            "one_line_judgment": f"{repo.full_name} 可能包含可复用的 AI 工作流、治理经验或灵感线索。",
             "project_type": project_type,
-            "problem_solved": repo.description or "UNKNOWN",
-            "target_users": "AI builders, automation users, and local workflow experimenters",
-            "input": "Repository docs, examples, prompts, workflows, or source files",
-            "output": "Reusable project intelligence and experiment ideas",
+            "problem_solved": repo.description or "未知",
+            "target_users": "AI 应用构建者、自动化用户、本地工作流实验者",
+            "input": "仓库文档、示例、prompt、workflow 或源码文件",
+            "output": "可复用的项目情报和实验灵感",
             "ai_pattern": self._ai_pattern(lowered),
-            "direct_value_for_me": "Useful if its structure can improve local Codex workflows or project governance.",
-            "governance_value": "Look for evals, guardrails, logs, permissions, and failure recovery patterns.",
-            "knowledge_tips": "Review docs, examples, templates, prompts, and setup files before reading source deeply.",
-            "inspiration_value": "Can inspire a small local experiment even if the whole project is too large to adopt.",
-            "replicable_mvp": "Extract one workflow, prompt pattern, evaluation rule, or starter template and test it locally.",
-            "hidden_costs": "UNKNOWN" if hidden_cost <= 2 else "May require external services, hosted APIs, or heavier setup.",
+            "direct_value_for_me": "如果它的结构能改进本地 Codex 工作流或项目治理，就有直接价值。",
+            "governance_value": "重点观察 eval、guardrail、日志、权限、成本和失败恢复机制。",
+            "knowledge_tips": "先看 docs、examples、templates、prompts 和安装配置，再决定是否读源码。",
+            "inspiration_value": "即使整个项目不适合采用，也可能拆出一个小技巧或小实验。",
+            "replicable_mvp": "抽取一个 workflow、prompt 模式、评测规则或 starter template，在本地做小实验。",
+            "hidden_costs": "未知" if hidden_cost <= 2 else "可能依赖外部服务、托管 API 或较重部署环境。",
             "key_directory_observations": self._directory_observations(tree_paths),
             "evidence_files": evidence_files,
             "selected_files": [file.as_dict() for file in selected_files],
@@ -150,26 +150,26 @@ class MockAnalyzer(AgentAdapter):
             "total_score": total,
             "final_action": final_action,
             "pass_reason": "",
-            "unknowns": [] if evidence >= 3 else ["Evidence is thin; read more files before making a strong decision."],
+            "unknowns": [] if evidence >= 3 else ["证据偏薄，做强判断前需要读取更多文件。"],
         }
 
     def _ai_pattern(self, lowered: str) -> str:
         patterns = []
         if "agent" in lowered:
-            patterns.append("agent orchestration")
+            patterns.append("agent 编排")
         if "workflow" in lowered:
-            patterns.append("workflow automation")
+            patterns.append("workflow 自动化")
         if "eval" in lowered:
-            patterns.append("evaluation")
+            patterns.append("评测")
         if "prompt" in lowered:
-            patterns.append("prompt management")
-        return ", ".join(patterns) or "UNKNOWN"
+            patterns.append("prompt 管理")
+        return "、".join(patterns) or "未知"
 
     def _directory_observations(self, tree_paths: list[str]) -> str:
         interesting = [p for p in tree_paths if p.startswith(("docs/", "examples/", "agents/", "prompts/", "evals/", "workflows/", "skills/"))]
         if not interesting:
-            return "No strong docs/examples/prompts/evals directory signal found in the scanned tree."
-        return "Interesting paths: " + ", ".join(interesting[:10])
+            return "目录树里没有发现明显的 docs/examples/prompts/evals 等强证据信号。"
+        return "值得关注的路径：" + ", ".join(interesting[:10])
 
 
 class LLMAnalyzer(AgentAdapter):

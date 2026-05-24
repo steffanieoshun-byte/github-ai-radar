@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="en">
+<html lang="zh-CN">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>GitHub AI Radar v0.1 Prototype</title>
+  <title>GitHub AI 项目雷达 v0.1 原型</title>
   <style>
     :root {
       --bg: #eef2f4;
@@ -21,7 +21,7 @@
       min-height: 100vh;
       background: var(--bg);
       color: var(--ink);
-      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-family: "Microsoft YaHei", "PingFang SC", Inter, system-ui, sans-serif;
     }
     .shell {
       min-height: 100vh;
@@ -198,62 +198,62 @@
   <div class="shell">
     <aside>
       <section class="block">
-        <h1>Inspiration Library</h1>
-        <p>One local workspace for scanning GitHub AI projects and preserving the useful findings.</p>
-        <button>Start Scan</button>
+        <h1>灵感库</h1>
+        <p>一个本地工作台，用来扫描 GitHub AI 项目，并沉淀真正有启发的内容。</p>
+        <button>开始扫描</button>
       </section>
       <nav class="filters">
-        <span class="chip active">All</span>
-        <span class="chip">High Signal</span>
-        <span class="chip">Watch</span>
-        <span class="chip">Experiment</span>
+        <span class="chip active">全部</span>
+        <span class="chip">高灵感</span>
+        <span class="chip">观察</span>
+        <span class="chip">实验</span>
       </nav>
       <section class="list">
         <article class="item active">
           <div class="item-head"><span>vercel/ai</span><span class="score">4.4</span></div>
-          <p>SDK patterns, examples, provider abstractions, and reusable app ideas.</p>
-          <div class="tags"><span class="tag">deep_dive</span><span class="tag">Workflow</span><span class="tag">TypeScript</span></div>
+          <p>SDK 抽象、示例组织、provider 设计和可复刻应用思路都有参考价值。</p>
+          <div class="tags"><span class="tag">深挖</span><span class="tag">工作流</span><span class="tag">TypeScript</span></div>
         </article>
         <article class="item">
           <div class="item-head"><span>promptfoo/promptfoo</span><span class="score">4.2</span></div>
-          <p>Evaluation and guardrail ideas for local AI project governance.</p>
-          <div class="tags"><span class="tag">watch</span><span class="tag">Eval</span><span class="tag">Evidence rich</span></div>
+          <p>评测、guardrail 和本地 AI 治理标准很有启发。</p>
+          <div class="tags"><span class="tag">观察</span><span class="tag">评测/治理</span><span class="tag">证据充足</span></div>
         </article>
       </section>
-      <section class="history">Recent runs stay visible, while filtered decisions are stored quietly for dedupe.</section>
+      <section class="history">历史扫描保留在这里；被过滤项目只在后台入库，用于去重。</section>
     </aside>
     <main>
       <header class="head">
         <div>
-          <p>Selected Project</p>
+          <p>当前项目</p>
           <h2>vercel/ai</h2>
-          <p>A useful inspiration source for provider abstraction, examples, and agent-ready workflow patterns.</p>
+          <p>它能启发 provider 抽象、示例驱动学习和 agent-ready 工作流设计。</p>
         </div>
-        <div class="links"><span>Mark Watch</span><span>Codex Experiment</span><span>Re-analyze</span></div>
+        <div class="links"><span>标记观察</span><span>Codex 实验</span><span>重新分析</span></div>
       </header>
       <section class="content">
         <div>
           <article class="card">
-            <h3>Why It Matters</h3>
+            <h3>为什么值得看</h3>
             <div class="grid">
-              <div class="box"><strong>Problem</strong><p>Build AI app flows without locking into one provider pattern.</p></div>
-              <div class="box"><strong>Pattern</strong><p>SDK abstractions, examples, streaming, tool calls, and integrations.</p></div>
-              <div class="box"><strong>Inspiration</strong><p>Extract a local provider adapter and examples-first learning loop.</p></div>
-              <div class="box"><strong>Replicable MVP</strong><p>Build one local adapter demo and score it with the same radar criteria.</p></div>
+              <div class="box"><strong>问题</strong><p>构建 AI 应用时，不被单一 provider 或单一范式锁死。</p></div>
+              <div class="box"><strong>玩法</strong><p>SDK 抽象、示例、流式输出、工具调用和集成方式。</p></div>
+              <div class="box"><strong>灵感</strong><p>提炼一个本地 provider adapter 和示例优先的学习闭环。</p></div>
+              <div class="box"><strong>可复刻实验</strong><p>做一个本地 adapter demo，再用同一套雷达标准评分。</p></div>
             </div>
           </article>
           <article class="card">
-            <h3>Evidence Files</h3>
-            <p><code>README.md</code>, <code>examples/*</code>, <code>packages/*</code>, <code>docs/*</code></p>
+            <h3>关键证据文件</h3>
+            <p><code>README.md</code>、<code>examples/*</code>、<code>packages/*</code>、<code>docs/*</code></p>
           </article>
         </div>
         <aside class="card">
-          <h3>Score Summary</h3>
-          <div class="bar-row"><span>Inspiration</span><div class="bar"><i style="width: 90%"></i></div><b>5</b></div>
-          <div class="bar-row"><span>Governance</span><div class="bar"><i style="width: 60%"></i></div><b>3</b></div>
-          <div class="bar-row"><span>Knowledge</span><div class="bar"><i style="width: 80%"></i></div><b>4</b></div>
-          <div class="bar-row"><span>Replicability</span><div class="bar"><i style="width: 80%"></i></div><b>4</b></div>
-          <div class="bar-row"><span>Evidence</span><div class="bar"><i style="width: 90%"></i></div><b>5</b></div>
+          <h3>评分摘要</h3>
+          <div class="bar-row"><span>灵感强度</span><div class="bar"><i style="width: 90%"></i></div><b>5</b></div>
+          <div class="bar-row"><span>治理启发</span><div class="bar"><i style="width: 60%"></i></div><b>3</b></div>
+          <div class="bar-row"><span>知识密度</span><div class="bar"><i style="width: 80%"></i></div><b>4</b></div>
+          <div class="bar-row"><span>可复刻性</span><div class="bar"><i style="width: 80%"></i></div><b>4</b></div>
+          <div class="bar-row"><span>证据质量</span><div class="bar"><i style="width: 90%"></i></div><b>5</b></div>
         </aside>
       </section>
     </main>
