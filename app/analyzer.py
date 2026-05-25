@@ -31,6 +31,30 @@ AI_TERMS = {
 
 GOVERNANCE_TERMS = {"eval", "evaluation", "guardrail", "policy", "audit", "permission", "cost", "trace", "logging"}
 REPLICABLE_TERMS = {"example", "examples", "demo", "starter", "template", "quickstart", "notebook", "docker"}
+FINANCE_TERMS = {
+    "algorithmic-trading",
+    "alpha",
+    "backtest",
+    "backtesting",
+    "finance",
+    "finrl",
+    "financial data",
+    "futures",
+    "investment",
+    "market",
+    "portfolio",
+    "qlib",
+    "quant investment",
+    "quant research",
+    "quant trading",
+    "quantitative",
+    "stock",
+    "strategy",
+    "systematic-trading",
+    "trading",
+    "vnpy",
+    "akshare",
+}
 
 
 class AgentAdapter(ABC):
@@ -100,6 +124,7 @@ def infer_focus_profile(
     selected_paths: list[str] | None = None,
     content_snippets: list[str] | None = None,
     project_type: str = "Other",
+    intent_keyword: str = "",
 ) -> dict[str, str]:
     topics = topics or []
     tree_paths = tree_paths or []
@@ -128,6 +153,7 @@ def infer_focus_profile(
     hidden_costs = "未知"
     if _has_any(blob, ("api key", "cloud", "paid", "hosted", "kubernetes", "docker-compose")):
         hidden_costs = "可能有外部服务、托管接口、账号额度或较重部署环境，需要先做小范围验证。"
+    strong_finance = _has_any(summary_blob, tuple(FINANCE_TERMS))
     strong_workflow = _has_any(
         summary_blob,
         ("workflow", "automation", "connector", "integration", "no-code", "n8n", "activepieces"),
@@ -140,6 +166,118 @@ def infer_focus_profile(
         summary_blob,
         ("agency", "role-playing", "role playing", "crew", "multi-agent", "multiagent", "autonomous ai agents", "autonomous agents"),
     )
+    finance_intent = _has_any(
+        intent_keyword.lower(),
+        ("量化", "quant", "quantitative", "trading", "finance", "investment"),
+    )
+    model_engineering = _has_any(
+        summary_blob,
+        ("llm", "language model", "chatglm", "model quant", "quantization", "大模型", "模型量化"),
+    )
+
+    if strong_finance:
+        if _has_any(summary_blob, ("awesome-list", "curated list", "resources", "awesome-systematic-trading")):
+            return {
+                "category": "量化资源清单",
+                "learn_label": "资源索引",
+                "experiment_label": "挑一个方向",
+                "audience_label": "量化选型",
+                "core_play": "把量化交易资料、库和策略方向按主题集中索引",
+                "problem_solved": f"{repo_full_name} 更像一个量化资源清单，本身未必可直接运行，价值在于帮你快速定位数据、回测、策略和交易工具。",
+                "target_users": "想建立量化工具地图、筛选数据源和回测框架的人",
+                "output": "可继续追踪的量化工具列表、分类入口和候选实验方向",
+                "direct_value_for_me": "它适合做量化工具选型入口，不适合直接当成一个可复刻项目。",
+                "governance_value": "重点看资源是否分清数据、回测、实盘、风控和研究流程，避免把清单误当结论。",
+                "knowledge_tips": f"先看 {files}，把其中的数据源、回测框架和策略库分开记录。",
+                "inspiration_value": "灵感来自分类方法和候选工具地图，可以帮助后续决定先试哪一个小实验。",
+                "replicable_mvp": "只选清单里的一个数据源和一个回测框架做对照，不要一次铺开整张地图。",
+                "hidden_costs": hidden_costs,
+            }
+        if _has_any(summary_blob, ("akshare", "financial data", "finance-api", "data interface", "economic-data")):
+            return {
+                "category": "财经数据接口",
+                "learn_label": "数据入口",
+                "experiment_label": "拉一组数据",
+                "audience_label": "数据采集",
+                "core_play": "把行情、宏观、基本面或衍生品数据封装成可调用接口",
+                "problem_solved": f"{repo_full_name} 更像一个财经数据入口，重点是看它覆盖哪些市场、如何取数、字段是否稳定、是否适合后续回测。",
+                "target_users": "想先解决量化数据来源、字段整理和本地缓存的人",
+                "output": "可调用的数据接口、字段说明和后续回测的数据输入",
+                "direct_value_for_me": "它的直接价值是给本地量化实验补数据层，而不是直接给出交易策略。",
+                "governance_value": "重点看数据来源、频率限制、字段变更、缺失值和缓存机制。",
+                "knowledge_tips": f"先看 {files}，确认有哪些市场、哪些接口、有没有示例请求和字段解释。",
+                "inspiration_value": "灵感来自数据接口组织方式和字段管理，可以拆成一个本地数据采集小工具。",
+                "replicable_mvp": "选一个股票或指数接口，拉取最近一段数据并保存到本地表。",
+                "hidden_costs": hidden_costs,
+            }
+        if _has_any(summary_blob, ("qlib", "finrl", "quant research", "machine-learning", "reinforcement", "portfolio", "research")):
+            return {
+                "category": "量化研究平台",
+                "learn_label": "研究闭环",
+                "experiment_label": "复刻一段研究流",
+                "audience_label": "量化研究",
+                "core_play": "把数据、特征、模型、回测和研究流程串成闭环",
+                "problem_solved": f"{repo_full_name} 更像一个量化研究平台，重点是看它如何把数据、特征、模型训练、回测和研究流程接起来。",
+                "target_users": "想做量化研究、机器学习选股、组合实验或研究流程自动化的人",
+                "output": "研究流程、数据处理方式、模型/策略样例和回测结果入口",
+                "direct_value_for_me": "它的价值在于拆出一个可落地的研究闭环，而不是只看 stars 或项目体量。",
+                "governance_value": "重点看实验记录、数据版本、回测假设、模型参数和结果复现方式。",
+                "knowledge_tips": f"先看 {files}，确认数据准备、训练入口、回测样例和结果记录。",
+                "inspiration_value": "灵感来自研究流程如何分层：数据、特征、模型、回测、报告各自边界是否清楚。",
+                "replicable_mvp": "选一个官方示例，用小数据跑通数据准备到回测输出的最短链路。",
+                "hidden_costs": hidden_costs,
+            }
+        if _has_any(summary_blob, ("backtest", "backtesting", "vnpy", "trading-bot", "trade-bot", "strategy", "strategies", "algotrading")):
+            return {
+                "category": "交易回测框架",
+                "learn_label": "策略回测",
+                "experiment_label": "跑一条策略",
+                "audience_label": "交易系统",
+                "core_play": "把行情接入、策略执行、回测或交易入口组织成系统骨架",
+                "problem_solved": f"{repo_full_name} 更像一个交易和回测框架，重点是看它如何组织策略、撮合/回测、行情接入和运行入口。",
+                "target_users": "想搭建本地量化回测、策略验证或交易系统骨架的人",
+                "output": "策略模板、回测入口、行情接入方式和运行结构",
+                "direct_value_for_me": "它可以启发本地量化实验的最小闭环：数据输入、策略逻辑、回测输出。",
+                "governance_value": "重点看风控、日志、参数记录、回测假设和实盘边界。",
+                "knowledge_tips": f"先看 {files}，确认是否有最小策略、回测脚本和运行文档。",
+                "inspiration_value": "灵感来自策略目录、回测流程和风险边界，不一定要采用整套框架。",
+                "replicable_mvp": "挑一个最小策略样例，用固定历史数据跑一次回测并记录结果。",
+                "hidden_costs": hidden_costs,
+            }
+        return {
+            "category": "量化项目线索",
+            "learn_label": "量化线索",
+            "experiment_label": "先拆用途",
+            "audience_label": "量化筛选",
+            "core_play": "从仓库说明和目录里判断它属于数据、研究、回测还是资源索引",
+            "problem_solved": f"{repo_full_name} 有量化相关信号，但用途还需要继续区分：它可能是数据源、研究平台、策略样例或资源清单。",
+            "target_users": "想从量化项目里筛出可复刻实验的人",
+            "output": "待确认的量化用途、阅读入口和实验假设",
+            "direct_value_for_me": "先不要直接采纳，先拆清楚它在量化链路里负责哪一段。",
+            "governance_value": "重点看数据来源、回测假设和结果记录是否清楚。",
+            "knowledge_tips": f"先看 {files}，判断它到底解决数据、研究、回测还是交易执行。",
+            "inspiration_value": "灵感来自它在量化链路里的定位，而不是项目名或热度。",
+            "replicable_mvp": "先写下它对应的数据、策略、回测或交易环节，再选一个最小动作验证。",
+            "hidden_costs": hidden_costs,
+        }
+
+    if finance_intent and model_engineering:
+        return {
+            "category": "模型工程资料",
+            "learn_label": "非交易量化",
+            "experiment_label": "先略过",
+            "audience_label": "模型工程",
+            "core_play": "围绕大模型训练、推理、压缩或工程化资料展开",
+            "problem_solved": f"{repo_full_name} 更像模型工程资料，不是交易量化项目；除非你搜的是模型量化，否则它对量化交易灵感的直接价值较低。",
+            "target_users": "大模型工程、推理部署或模型压缩学习者",
+            "output": "模型工程资料、教程或推理部署线索",
+            "direct_value_for_me": "如果当前目标是量化交易，它应该作为噪音或低优先级观察项。",
+            "governance_value": "可观察工程化治理，但不应混入交易量化结果判断。",
+            "knowledge_tips": f"先看 {files}，确认它是否真的包含金融交易内容；没有就删除前台展示。",
+            "inspiration_value": "可能有工程技巧，但不是当前量化交易搜索的主要灵感源。",
+            "replicable_mvp": "除非发现交易数据或策略示例，否则不建议复刻。",
+            "hidden_costs": hidden_costs,
+        }
 
     if strong_workflow and not explicit_multi_agent:
         return {
@@ -287,6 +425,8 @@ class MockAnalyzer(AgentAdapter):
             ]
         )
         direct = text_score(corpus, AI_TERMS)
+        if _has_any(" ".join([intent.keyword, corpus]).lower(), tuple(FINANCE_TERMS)):
+            direct = max(direct, text_score(corpus, FINANCE_TERMS))
         governance = text_score(corpus, GOVERNANCE_TERMS)
         replicability = text_score(corpus, REPLICABLE_TERMS)
         knowledge = 4 if any(path.startswith(("docs/", "examples/", "notebooks/")) for path in tree_paths) else 2
@@ -333,6 +473,7 @@ class MockAnalyzer(AgentAdapter):
             selected_paths=[file.path for file in selected_files],
             content_snippets=[file.content for file in selected_files],
             project_type=project_type,
+            intent_keyword=intent.keyword,
         )
         project_type = {
             "多智能体协作": "Agent",

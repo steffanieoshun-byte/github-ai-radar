@@ -5,7 +5,7 @@ from collections import OrderedDict
 from typing import Any
 
 from . import db
-from .analyzer import AI_TERMS, MockAnalyzer, get_analyzer
+from .analyzer import AI_TERMS, FINANCE_TERMS, MockAnalyzer, get_analyzer
 from .github_client import GitHubClient
 from .models import RepoMetadata, SearchIntent, SelectedFile
 
@@ -16,6 +16,14 @@ DIRECTIONS = [
     "eval guardrails",
     "prompts examples templates",
     "starter demo boilerplate",
+]
+
+FINANCE_DIRECTIONS = [
+    "backtesting trading strategy",
+    "financial data stock",
+    "portfolio research",
+    "machine learning quant",
+    "trading bot examples",
 ]
 
 PRIORITY_PREFIXES = (
@@ -29,6 +37,12 @@ PRIORITY_PREFIXES = (
     "evals/",
     "templates/",
     "notebooks/",
+    "strategy/",
+    "strategies/",
+    "backtest/",
+    "backtests/",
+    "research/",
+    "trading/",
     "src/",
     "app/",
 )
@@ -63,6 +77,14 @@ SKIP_SUFFIXES = (
     ".tar",
     ".gz",
     ".lock",
+    ".csv",
+    ".parquet",
+    ".pkl",
+    ".h5",
+    ".hdf5",
+    ".npy",
+    ".npz",
+    ".feather",
 )
 
 MODE_BUDGETS = {"quick": 2, "standard": 8, "deep": 20}
@@ -74,6 +96,9 @@ KEYWORD_ALIASES = {
     "提示词评测防护": "prompt evaluation guardrail",
     "本地知识库": "local ai knowledge base",
     "代码助手自动化": "coding assistant automation",
+    "量化": "quantitative trading finance",
+    "量化交易": "quantitative trading finance",
+    "量化投资": "quantitative investment finance",
 }
 
 
@@ -81,10 +106,18 @@ def search_keyword(keyword: str) -> str:
     return KEYWORD_ALIASES.get(keyword.strip(), keyword.strip())
 
 
+def is_finance_intent(keyword: str) -> bool:
+    normalized = keyword.strip().lower()
+    mapped = search_keyword(keyword).lower()
+    finance_markers = {"量化", "量化交易", "量化投资", "quant", "quantitative", "trading", "finance", "investment"}
+    return any(marker in normalized or marker in mapped for marker in finance_markers)
+
+
 def make_intent(keyword: str, scan_count: int, scan_mode: str, title: str = "") -> SearchIntent:
     mode = scan_mode if scan_mode in MODE_BUDGETS else "quick"
     count = max(1, min(int(scan_count), 30))
-    return SearchIntent(keyword=keyword.strip(), scan_count=count, scan_mode=mode, title=title.strip(), directions=DIRECTIONS)
+    directions = FINANCE_DIRECTIONS if is_finance_intent(keyword) else DIRECTIONS
+    return SearchIntent(keyword=keyword.strip(), scan_count=count, scan_mode=mode, title=title.strip(), directions=directions)
 
 
 def build_queries(intent: SearchIntent) -> list[str]:
@@ -102,20 +135,39 @@ def candidate_limit(intent: SearchIntent) -> int:
 
 def shell_decision(repo: RepoMetadata, readme: str, intent: SearchIntent) -> tuple[str, str]:
     shell_blob = " ".join([repo.full_name, repo.description, " ".join(repo.topics), readme[:4000]]).lower()
+    finance_intent = is_finance_intent(intent.keyword)
+    domain_terms = FINANCE_TERMS if finance_intent else AI_TERMS
     ai_hits = sum(1 for term in AI_TERMS if term in shell_blob)
+    domain_hits = sum(1 for term in domain_terms if term in shell_blob)
     keyword_terms = {term for term in intent.keyword.lower().replace("-", " ").split() if len(term) >= 3}
     keyword_hits = sum(1 for term in keyword_terms if term in shell_blob)
-    evidence_terms = {"example", "examples", "template", "demo", "docs", "quickstart", "workflow", "eval", "guardrail"}
+    evidence_terms = {
+        "backtest",
+        "data",
+        "demo",
+        "docs",
+        "eval",
+        "example",
+        "examples",
+        "guardrail",
+        "quickstart",
+        "research",
+        "strategy",
+        "template",
+        "workflow",
+    }
     evidence_hits = sum(1 for term in evidence_terms if term in shell_blob)
-    if not readme.strip() and ai_hits == 0 and keyword_hits == 0:
-        return "PASS", "没有 README 信号，且 AI/自动化相关性较弱。"
-    if ai_hits >= 5 or (keyword_hits >= 2 and evidence_hits >= 2):
+    if finance_intent and any(term in shell_blob for term in ["quantization", "llm", "language model"]) and domain_hits == 0:
+        return "PASS", "这是模型量化或大模型工程信号，不是交易/投资量化。"
+    if not readme.strip() and ai_hits == 0 and domain_hits == 0 and keyword_hits == 0:
+        return "PASS", "没有 README 信号，且与当前搜索方向相关性较弱。"
+    if domain_hits >= 5 or (keyword_hits >= 2 and evidence_hits >= 2):
         return "DEEP", ""
-    if ai_hits >= 2 or keyword_hits >= 2 or (keyword_hits >= 1 and evidence_hits >= 1):
+    if domain_hits >= 2 or keyword_hits >= 2 or (keyword_hits >= 1 and evidence_hits >= 1):
         return "ANALYZE", ""
-    if ai_hits >= 1 or keyword_hits >= 1:
+    if domain_hits >= 1 or keyword_hits >= 1:
         return "LIGHT", ""
-    return "PASS", "壳信息与当前 AI 灵感搜索意图不匹配。"
+    return "PASS", "壳信息与当前灵感搜索意图不匹配。"
 
 
 def tree_matches(tree_paths: list[str]) -> tuple[bool, str]:
@@ -126,7 +178,7 @@ def tree_matches(tree_paths: list[str]) -> tuple[bool, str]:
     ]
     if interesting:
         return True, ""
-    return False, "目录树缺少 docs、examples、prompts、workflows、evals、skills 或 starter 证据。"
+    return False, "目录树缺少 docs、examples、prompts、workflows、evals、skills、strategy 或 backtest 证据。"
 
 
 def eligible_path(path: str) -> bool:
@@ -150,6 +202,8 @@ def select_files(tree_paths: list[str], mode: str) -> tuple[list[SelectedFile], 
             candidates.append((1, path, "documentation or runnable example"))
         elif path.startswith(("agents/", "workflows/", "prompts/", "skills/", "evals/")):
             candidates.append((2, path, "agent, prompt, workflow, skill, or evaluation evidence"))
+        elif path.startswith(("strategy/", "strategies/", "backtest/", "backtests/", "research/", "trading/")):
+            candidates.append((2, path, "quant strategy, research, or backtesting evidence"))
         elif path.startswith(("src/", "app/")) and len(path.split("/")) <= 4:
             candidates.append((3, path, "small source entry point"))
     ordered = sorted(candidates, key=lambda item: (item[0], len(item[1]), item[1]))

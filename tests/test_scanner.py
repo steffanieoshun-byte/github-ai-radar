@@ -3,7 +3,7 @@ import sqlite3
 from app import db
 from app.analyzer import MockAnalyzer
 from app.models import RepoMetadata
-from app.scanner import RadarScanner, build_queries, make_intent, search_keyword, select_files
+from app.scanner import RadarScanner, build_queries, make_intent, is_finance_intent, search_keyword, select_files
 
 
 class FakeGitHubClient:
@@ -84,6 +84,17 @@ def test_chinese_keyword_options_search_with_english_query_terms() -> None:
 
     assert search_keyword("智能体治理") == "ai agent governance"
     assert "ai agent governance" in queries[0]
+
+
+def test_quant_keyword_uses_finance_queries_not_agent_queries() -> None:
+    intent = make_intent("量化", 10, "deep")
+    queries = build_queries(intent)
+
+    assert is_finance_intent("量化")
+    assert search_keyword("量化") == "quantitative trading finance"
+    assert "quantitative trading finance" in queries[0]
+    assert any("backtesting trading strategy" in query for query in queries)
+    assert all("agent workflow" not in query for query in queries)
 
 
 def test_scanner_uses_candidate_pool_until_target_display_count(tmp_path) -> None:

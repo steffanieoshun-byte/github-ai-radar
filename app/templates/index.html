@@ -30,6 +30,7 @@
               <option value="提示词评测防护">
               <option value="本地知识库">
               <option value="代码助手自动化">
+              <option value="量化交易">
             </datalist>
           </label>
           <div class="scan-inline">
@@ -58,12 +59,18 @@
       </nav>
 
       <section class="library-list compact-list" aria-label="项目列表">
+        <div class="list-sort-label">按扫描时间排序，最新在前</div>
         {% for item in library %}
           <article class="library-item {{ 'selected' if detail and detail.project.id == item.id else '' }}">
             <a class="library-link" href="/?filter={{ filter_name }}&project_id={{ item.id }}">
               <div class="item-head">
-                <strong>{{ item.repo_full_name }}</strong>
+                <strong>{{ item.management_title }}</strong>
                 <span>{{ item.total_score }}</span>
+              </div>
+              <div class="repo-code">{{ item.repo_full_name }}</div>
+              <div class="item-meta">
+                <span>{{ item.scan_keyword }}</span>
+                <span>{{ item.analyzed_at_label }}</span>
               </div>
               <div class="tags tight-tags">
                 <span>{{ item.final_action_label }}</span>
@@ -88,10 +95,11 @@
         <header class="workspace-head compact-head">
           <div>
             <p class="eyebrow">当前项目</p>
-            <h2>{{ detail.project.repo_full_name }}</h2>
+            <h2>{{ detail.display_title }}</h2>
             <p>{{ detail.analysis_json.one_line_judgment }}</p>
             <div class="meta-row">
               <a href="{{ detail.project.repo_url }}" target="_blank" rel="noreferrer">打开仓库</a>
+              <span>{{ detail.project.repo_full_name }}</span>
               <span>收藏 {{ detail.project.stars }}</span>
               <span>更新时间 {{ detail.project.updated_at[:10] if detail.project.updated_at else "未知" }}</span>
             </div>

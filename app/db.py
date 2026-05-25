@@ -305,7 +305,8 @@ def list_library(conn: sqlite3.Connection, filter_name: str = "all") -> list[sql
         conn.execute(
             f"""
             SELECT p.*, a.id AS analysis_id, a.final_action, a.initial_decision,
-                   a.analysis_json, a.scores_json, a.created_at AS analyzed_at
+                   a.analysis_json, a.scores_json, a.created_at AS analyzed_at,
+                   r.keyword AS scan_keyword, r.created_at AS run_created_at
             FROM projects p
             JOIN project_analyses a ON a.id = (
                 SELECT id FROM project_analyses
@@ -313,6 +314,7 @@ def list_library(conn: sqlite3.Connection, filter_name: str = "all") -> list[sql
                 ORDER BY id DESC
                 LIMIT 1
             )
+            JOIN runs r ON r.id = a.run_id
             {where}
             ORDER BY a.id DESC
             """,

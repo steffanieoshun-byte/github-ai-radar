@@ -83,6 +83,70 @@ def test_mock_analyzer_produces_repo_specific_text() -> None:
     assert "自动化" in workflow_analysis["problem_solved"]
 
 
+def test_mock_analyzer_has_quant_specific_profiles() -> None:
+    intent = SearchIntent(keyword="量化", scan_count=2, scan_mode="deep")
+    qlib = RepoMetadata(
+        full_name="microsoft/qlib",
+        html_url="https://github.com/microsoft/qlib",
+        description="AI-oriented Quant investment platform for Quant Research, models, datasets, and backtesting.",
+        stars=10,
+        forks=2,
+        language="Python",
+        topics=["quantitative-trading", "stock-data", "research", "machine-learning"],
+        updated_at="2026-01-01T00:00:00Z",
+        default_branch="main",
+    )
+    akshare = RepoMetadata(
+        full_name="akfamily/akshare",
+        html_url="https://github.com/akfamily/akshare",
+        description="Open source financial data interface library for stocks, futures, options, and economics.",
+        stars=10,
+        forks=2,
+        language="Python",
+        topics=["financial-data", "finance-api", "stock", "quant"],
+        updated_at="2026-01-01T00:00:00Z",
+        default_branch="main",
+    )
+    llm = RepoMetadata(
+        full_name="owner/llm-quantization",
+        html_url="https://github.com/owner/llm-quantization",
+        description="Large language model quantization and inference notes.",
+        stars=10,
+        forks=2,
+        language="Python",
+        topics=["llm", "quantization"],
+        updated_at="2026-01-01T00:00:00Z",
+        default_branch="main",
+    )
+
+    qlib_analysis = MockAnalyzer().analyze(
+        qlib,
+        intent,
+        "Quant research platform with datasets, models, portfolio and backtesting examples.",
+        ["README.md", "examples/README.md"],
+        [SelectedFile("examples/README.md", "example", "quant research backtesting stock model")],
+    )
+    akshare_analysis = MockAnalyzer().analyze(
+        akshare,
+        intent,
+        "Financial data API examples for stock and futures data.",
+        ["README.md", "docs/demo.md"],
+        [SelectedFile("docs/demo.md", "docs", "financial data stock futures API")],
+    )
+    llm_analysis = MockAnalyzer().analyze(
+        llm,
+        intent,
+        "LLM quantization and inference.",
+        ["README.md"],
+        [SelectedFile("README.md", "docs", "LLM quantization inference")],
+    )
+
+    assert "量化研究平台" in qlib_analysis["problem_solved"]
+    assert "财经数据入口" in akshare_analysis["problem_solved"]
+    assert "不是交易量化" in llm_analysis["problem_solved"]
+    assert qlib_analysis["problem_solved"] != akshare_analysis["problem_solved"]
+
+
 def test_load_llm_profiles_supports_primary_and_fallbacks(monkeypatch) -> None:
     monkeypatch.setenv("LLM_API_KEY", "primary-key")
     monkeypatch.setenv("LLM_BASE_URL", "https://primary.example/v1")

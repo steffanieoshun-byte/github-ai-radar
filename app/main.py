@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
@@ -64,6 +65,8 @@ MODE_LABELS = {
     "standard": "标准",
     "deep": "深入",
 }
+
+LOCAL_TZ = timezone(timedelta(hours=8))
 
 
 @app.on_event("startup")
@@ -198,6 +201,35 @@ def _selected_snippets(selected_files: list[dict[str, Any]]) -> list[str]:
     return [str(item.get("content", "")) for item in selected_files if item.get("content")]
 
 
+def _format_local_time(value: str) -> str:
+    if not value:
+        return "时间未知"
+    try:
+        normalized = value.replace("Z", "+00:00")
+        parsed = datetime.fromisoformat(normalized)
+        if parsed.tzinfo is None:
+            parsed = parsed.replace(tzinfo=timezone.utc)
+        return parsed.astimezone(LOCAL_TZ).strftime("%m-%d %H:%M")
+    except Exception:
+        return value[:16]
+
+
+def _management_title(repo_full_name: str, focus: dict[str, str]) -> str:
+    repo_key = repo_full_name.lower()
+    known = {
+        "microsoft/qlib": "量化研究平台",
+        "aifinance-foundation/finrl": "强化学习交易实验",
+        "ai4finance-foundation/finrl": "强化学习交易实验",
+        "akfamily/akshare": "财经数据接口",
+        "vnpy/vnpy": "交易系统框架",
+        "ufund-me/qbot": "本地量化机器人",
+        "wangzhe3224/awesome-systematic-trading": "量化资源清单",
+    }
+    if repo_key in known:
+        return known[repo_key]
+    return focus["category"]
+
+
 def _library_item(row: Any) -> dict[str, Any]:
     analysis = json.loads(row["analysis_json"])
     scores = json.loads(row["scores_json"])
@@ -205,12 +237,15 @@ def _library_item(row: Any) -> dict[str, Any]:
         topics = json.loads(row["topics_json"] or "[]")
     except Exception:
         topics = []
+    scan_keyword = row["scan_keyword"] if "scan_keyword" in row.keys() else ""
     focus = infer_focus_profile(
         repo_full_name=row["repo_full_name"],
         description=row["description"] or "",
         topics=topics,
         project_type=analysis.get("project_type", "Other"),
+        intent_keyword=scan_keyword,
     )
+    analyzed_at = row["analyzed_at"] if "analyzed_at" in row.keys() else ""
     return {
         "id": int(row["id"]),
         "repo_full_name": row["repo_full_name"],
@@ -224,6 +259,9 @@ def _library_item(row: Any) -> dict[str, Any]:
         "initial_decision": row["initial_decision"],
         "initial_decision_label": DECISION_LABELS.get(row["initial_decision"], row["initial_decision"]),
         "analyzed_at": row["analyzed_at"],
+        "analyzed_at_label": _format_local_time(analyzed_at),
+        "scan_keyword": scan_keyword or "未知关键词",
+        "management_title": _management_title(row["repo_full_name"], focus),
         "total_score": analysis.get("total_score", 0),
         "one_line_judgment": analysis.get("one_line_judgment", ""),
         "project_type": analysis.get("project_type", "Other"),
@@ -245,6 +283,10 @@ def _detail_view(detail: dict[str, Any] | None) -> dict[str, Any] | None:
     except Exception:
         topics = []
     selected_paths = _selected_paths(detail["selected_files"])
+    try:
+        search_intent = json.loads(analysis.get("search_intent_json") or "{}")
+    except Exception:
+        search_intent = {}
     focus = infer_focus_profile(
         repo_full_name=project["repo_full_name"],
         description=project.get("description") or "",
@@ -252,11 +294,13 @@ def _detail_view(detail: dict[str, Any] | None) -> dict[str, Any] | None:
         selected_paths=selected_paths,
         content_snippets=_selected_snippets(detail["selected_files"]),
         project_type=analysis_json.get("project_type", "Other"),
+        intent_keyword=str(search_intent.get("keyword", "")),
     )
     analysis_json["one_line_judgment"] = _specific_or_focus(
         analysis_json.get("one_line_judgment", ""),
         f"{project['repo_full_name']} 更像一个{focus['category']}，适合观察{focus['learn_label']}。",
     )
+    display_title = f"{_management_title(project['repo_full_name'], focus)}｜{project['repo_full_name']}"
     metrics = [
         ("灵感强度", scores.get("inspiration", 0)),
         ("可复刻性", scores.get("replicability", 0)),
@@ -307,6 +351,7 @@ def _detail_view(detail: dict[str, Any] | None) -> dict[str, Any] | None:
         "final_action_label": ACTION_LABELS.get(analysis["final_action"], analysis["final_action"]),
         "initial_decision_label": DECISION_LABELS.get(analysis["initial_decision"], analysis["initial_decision"]),
         "project_type_label": PROJECT_TYPE_LABELS.get(analysis_json.get("project_type", "Other"), analysis_json.get("project_type", "Other")),
+        "display_title": display_title,
         "worth_intro": worth_intro,
         "worth_tags": worth_tags,
         "inspiration_paragraphs": [
