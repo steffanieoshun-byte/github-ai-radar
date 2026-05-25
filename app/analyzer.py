@@ -406,6 +406,9 @@ def infer_focus_profile(
 
 
 class MockAnalyzer(AgentAdapter):
+    def __init__(self, source: str = "mock") -> None:
+        self.source = source
+
     def analyze(
         self,
         repo: RepoMetadata,
@@ -485,6 +488,7 @@ class MockAnalyzer(AgentAdapter):
         }.get(focus["category"], project_type)
         return {
             "analysis_version": "0.1",
+            "analysis_source": self.source,
             "one_line_judgment": f"{repo.full_name} 更像一个{focus['category']}，适合观察{focus['learn_label']}。",
             "project_type": project_type,
             "problem_solved": focus["problem_solved"],
@@ -584,7 +588,12 @@ class LLMAnalyzer(AgentAdapter):
                 "messages": [
                     {
                         "role": "system",
-                        "content": "你是本地 GitHub AI 项目雷达的中文分析器。只输出合法 JSON，不要输出 Markdown。不确定写未知，不要编造项目能力。",
+                        "content": (
+                            "你是本地 GitHub AI 项目雷达的中文分析器。只输出合法 JSON，不要输出 Markdown。"
+                            "你的任务不是复述 README，而是判断这个仓库能不能成为用户的灵感源。"
+                            "每个结论都要尽量落到具体项目、目录、文件、玩法、可复刻实验和证据上。"
+                            "不确定写未知，不要编造项目能力。"
+                        ),
                     },
                     {
                         "role": "user",
@@ -646,6 +655,15 @@ class LLMAnalyzer(AgentAdapter):
                 "final_action": "direct_try/deep_dive/codex_experiment/watch/skip",
                 "unknowns": [],
             },
+            "analysis_rules": [
+                "必须用中文输出，仓库名和文件路径可以保留英文。",
+                "不要写通用模板句，例如“可能提供灵感”这种空话；必须说明这个仓库具体可能带来什么灵感。",
+                "先判断它属于数据源、研究平台、工作流、智能体、治理评测、知识教程、模型工程或其他。",
+                "如果当前搜索意图是量化，要区分交易量化、投资研究、财经数据接口、回测框架、资源清单、模型量化噪音。",
+                "给出最小可复刻动作，动作必须小到本地一天内能试。",
+                "如果证据不足，要明确写证据不足在哪里，并降低 evidence_quality。",
+                "每条关键判断尽量关联 evidence_files 或 selected_files 里的具体文件。",
+            ],
         }
         return json.dumps(payload, ensure_ascii=False)
 
@@ -692,11 +710,23 @@ def _profile_from_env(prefix: str, name: str, allow_openai_defaults: bool = Fals
     return LLMProfile(name=name, api_key=api_key, base_url=base_url, model=model)
 
 
+def _deepseek_profile_from_env() -> LLMProfile | None:
+    api_key = os.getenv("DEEPSEEK_API_KEY", "")
+    if not api_key:
+        return None
+    base_url = os.getenv("DEEPSEEK_BASE_URL", "https://api.deepseek.com")
+    model = os.getenv("DEEPSEEK_MODEL", "deepseek-v4-pro")
+    return LLMProfile(name="deepseek", api_key=api_key, base_url=base_url, model=model)
+
+
 def load_llm_profiles() -> list[LLMProfile]:
     profiles: list[LLMProfile] = []
     primary = _profile_from_env("LLM_", "primary", allow_openai_defaults=True)
     if primary:
         profiles.append(primary)
+    deepseek = _deepseek_profile_from_env()
+    if deepseek and not any(profile.api_key == deepseek.api_key and profile.base_url == deepseek.base_url for profile in profiles):
+        profiles.append(deepseek)
     for index in range(1, 4):
         profile = _profile_from_env(f"LLM_FALLBACK_{index}_", f"fallback_{index}")
         if profile:
@@ -710,4 +740,5 @@ def get_analyzer() -> AgentAdapter:
         profiles = load_llm_profiles()
         if profiles:
             return LLMAnalyzer(profiles)
+        return MockAnalyzer("mock_no_llm_config")
     return MockAnalyzer()

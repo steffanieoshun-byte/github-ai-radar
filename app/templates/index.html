@@ -71,6 +71,7 @@
               <div class="item-meta">
                 <span>{{ item.scan_keyword }}</span>
                 <span>{{ item.analyzed_at_label }}</span>
+                <span>{{ item.analysis_source_label }}</span>
               </div>
               <div class="tags tight-tags">
                 <span>{{ item.final_action_label }}</span>
@@ -99,6 +100,7 @@
             <p>{{ detail.analysis_json.one_line_judgment }}</p>
             <div class="meta-row">
               <a href="{{ detail.project.repo_url }}" target="_blank" rel="noreferrer">打开仓库</a>
+              <span>{{ detail.analysis_source_label }}</span>
               <span>{{ detail.project.repo_full_name }}</span>
               <span>收藏 {{ detail.project.stars }}</span>
               <span>更新时间 {{ detail.project.updated_at[:10] if detail.project.updated_at else "未知" }}</span>

@@ -298,6 +298,7 @@ button,
 
 .item-meta {
   display: flex;
+  flex-wrap: wrap;
   gap: 5px;
   margin-top: 3px;
   color: var(--muted);

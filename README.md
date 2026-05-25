@@ -38,6 +38,10 @@ GITHUB_TOKEN=
 ANALYZER_MODE=mock
 DATABASE_PATH=data/radar.sqlite3
 
+DEEPSEEK_API_KEY=
+DEEPSEEK_BASE_URL=https://api.deepseek.com
+DEEPSEEK_MODEL=deepseek-v4-pro
+
 LLM_PROVIDER=openai_compatible
 LLM_API_KEY=
 LLM_BASE_URL=
@@ -50,11 +54,22 @@ LLM_FALLBACK_1_MODEL=
 OPENAI_API_KEY=
 ```
 
-建议配置 `GITHUB_TOKEN`，用于提高 GitHub API rate limit。没有任何模型 key 时，默认 `MockAnalyzer` 也可以跑通完整本地闭环。
+建议配置 `GITHUB_TOKEN`，用于提高 GitHub API rate limit。没有任何模型 key 时，默认 `MockAnalyzer` 也可以跑通完整本地闭环，但内容会偏规则化，不适合作为最终判断。
 
 ## 模型 API 配置
 
 v0.1 不绑定 Codex key。模型分析统一走 OpenAI-compatible 接口，用户可以配置 OpenAI、OpenRouter、DeepSeek、Gemini 兼容代理或其他兼容 `/chat/completions` 的服务。
+
+推荐先用 DeepSeek：
+
+```text
+ANALYZER_MODE=llm
+DEEPSEEK_API_KEY=你的DeepSeek key
+DEEPSEEK_BASE_URL=https://api.deepseek.com
+DEEPSEEK_MODEL=deepseek-v4-pro
+```
+
+DeepSeek 官方 OpenAI-compatible base URL 是 `https://api.deepseek.com`。如果你想省成本，可以把模型改成 `deepseek-v4-flash`。
 
 默认模式：
 

@@ -230,6 +230,20 @@ def _management_title(repo_full_name: str, focus: dict[str, str]) -> str:
     return focus["category"]
 
 
+def _analysis_source_label(source: str) -> str:
+    if source.startswith("llm:deepseek"):
+        return "DeepSeek 模型分析"
+    if source.startswith("llm:"):
+        return "模型分析"
+    if source == "mock_after_llm_failure":
+        return "模型失败，已回退"
+    if source == "mock_no_llm_config":
+        return "未配置模型，Mock"
+    if source == "pass_filter":
+        return "后台过滤"
+    return "Mock 规则分析"
+
+
 def _library_item(row: Any) -> dict[str, Any]:
     analysis = json.loads(row["analysis_json"])
     scores = json.loads(row["scores_json"])
@@ -262,6 +276,7 @@ def _library_item(row: Any) -> dict[str, Any]:
         "analyzed_at_label": _format_local_time(analyzed_at),
         "scan_keyword": scan_keyword or "未知关键词",
         "management_title": _management_title(row["repo_full_name"], focus),
+        "analysis_source_label": _analysis_source_label(str(analysis.get("analysis_source", "mock"))),
         "total_score": analysis.get("total_score", 0),
         "one_line_judgment": analysis.get("one_line_judgment", ""),
         "project_type": analysis.get("project_type", "Other"),
@@ -352,6 +367,7 @@ def _detail_view(detail: dict[str, Any] | None) -> dict[str, Any] | None:
         "initial_decision_label": DECISION_LABELS.get(analysis["initial_decision"], analysis["initial_decision"]),
         "project_type_label": PROJECT_TYPE_LABELS.get(analysis_json.get("project_type", "Other"), analysis_json.get("project_type", "Other")),
         "display_title": display_title,
+        "analysis_source_label": _analysis_source_label(str(analysis_json.get("analysis_source", "mock"))),
         "worth_intro": worth_intro,
         "worth_tags": worth_tags,
         "inspiration_paragraphs": [

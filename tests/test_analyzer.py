@@ -162,13 +162,29 @@ def test_load_llm_profiles_supports_primary_and_fallbacks(monkeypatch) -> None:
     assert profiles[1].model == "fallback-model"
 
 
+def test_load_llm_profiles_supports_deepseek_defaults(monkeypatch) -> None:
+    monkeypatch.delenv("LLM_API_KEY", raising=False)
+    monkeypatch.delenv("LLM_BASE_URL", raising=False)
+    monkeypatch.delenv("LLM_MODEL", raising=False)
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    monkeypatch.setenv("DEEPSEEK_API_KEY", "deepseek-key")
+
+    profiles = load_llm_profiles()
+
+    assert profiles[0].name == "deepseek"
+    assert profiles[0].base_url == "https://api.deepseek.com"
+    assert profiles[0].model == "deepseek-v4-pro"
+
+
 def test_get_analyzer_uses_mock_without_complete_llm_config(monkeypatch) -> None:
     monkeypatch.setenv("ANALYZER_MODE", "llm")
     monkeypatch.delenv("LLM_API_KEY", raising=False)
     monkeypatch.delenv("LLM_MODEL", raising=False)
     monkeypatch.delenv("OPENAI_API_KEY", raising=False)
 
-    assert isinstance(get_analyzer(), MockAnalyzer)
+    analyzer = get_analyzer()
+    assert isinstance(analyzer, MockAnalyzer)
+    assert analyzer.source == "mock_no_llm_config"
 
 
 def test_llm_analyzer_falls_back_to_second_profile(monkeypatch) -> None:

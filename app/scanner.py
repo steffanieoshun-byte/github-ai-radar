@@ -392,6 +392,7 @@ class RadarScanner:
     def _pass_analysis(self, repo: RepoMetadata, reason: str) -> dict[str, Any]:
         return {
             "analysis_version": "0.1",
+            "analysis_source": "pass_filter",
             "one_line_judgment": f"{repo.full_name} 在本次扫描中被过滤。",
             "project_type": "Other",
             "problem_solved": repo.description or "未知",
