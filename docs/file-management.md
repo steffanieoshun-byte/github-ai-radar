@@ -14,7 +14,7 @@
 - `app/main.py`：FastAPI 路由、启动初始化、表单处理、页面渲染。
 - `app/db.py`：SQLite 表结构、连接工具、扫描/项目/分析结果持久化。
 - `app/github_client.py`：GitHub REST API 访问，只读接口，不 clone 仓库。
-- `app/analyzer.py`：`AgentAdapter`、`MockAnalyzer`、OpenAI-compatible `LLMAnalyzer` 和备用模型接口读取。
+- `app/analyzer.py`：`AgentAdapter`、`MockAnalyzer`、仓库焦点画像、OpenAI-compatible `LLMAnalyzer` 和备用模型接口读取。
 - `app/scanner.py`：扫描编排、搜索意图扩展、三道判断门、去重、文件读取预算。
 - `app/models.py`：扫描器、分析器、模板共享的数据结构。
 - `app/templates/index.html`：中文一屏工作台 UI。
@@ -38,6 +38,7 @@
 
 - `tests/test_analyzer.py`：分析器和评分行为。
 - `tests/test_db.py`：SQLite 持久化和历史不覆盖。
+- `tests/test_display_focus.py`：旧 mock 记录在前台展示时的仓库差异化结论。
 - `tests/test_scanner.py`：搜索意图、文件预算、PASS/去重逻辑。
 
 ## 原型

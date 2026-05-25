@@ -34,7 +34,53 @@ def test_mock_analyzer_scores_inspiration_and_evidence() -> None:
     assert analysis["evidence_files"] == ["docs/quickstart.md"]
     assert analysis["final_action"] in {"watch", "deep_dive", "codex_experiment"}
     assert "AI agent workflow" not in analysis["problem_solved"]
-    assert "智能工作流" in analysis["problem_solved"]
+    assert "工作流" in analysis["problem_solved"]
+
+
+def test_mock_analyzer_produces_repo_specific_text() -> None:
+    intent = SearchIntent(keyword="ai agent", scan_count=2, scan_mode="quick")
+    crew = RepoMetadata(
+        full_name="crewAIInc/crewAI",
+        html_url="https://github.com/crewAIInc/crewAI",
+        description="Framework for orchestrating role-playing autonomous AI agents.",
+        stars=10,
+        forks=2,
+        language="Python",
+        topics=["agents", "ai-agents"],
+        updated_at="2026-01-01T00:00:00Z",
+        default_branch="main",
+    )
+    workflow = RepoMetadata(
+        full_name="activepieces/activepieces",
+        html_url="https://github.com/activepieces/activepieces",
+        description="AI workflow automation with tools and integrations.",
+        stars=10,
+        forks=2,
+        language="TypeScript",
+        topics=["workflow", "automation", "mcp"],
+        updated_at="2026-01-01T00:00:00Z",
+        default_branch="main",
+    )
+
+    crew_analysis = MockAnalyzer().analyze(
+        crew,
+        intent,
+        "Role-playing autonomous agents and task orchestration.",
+        ["README.md", "examples/demo.py"],
+        [SelectedFile("examples/demo.py", "example", "agent crew task process")],
+    )
+    workflow_analysis = MockAnalyzer().analyze(
+        workflow,
+        intent,
+        "Workflow automation and integration examples.",
+        ["README.md", "package.json", "docs/README.md"],
+        [SelectedFile("docs/README.md", "docs", "workflow automation connector")],
+    )
+
+    assert crew_analysis["problem_solved"] != workflow_analysis["problem_solved"]
+    assert crew_analysis["replicable_mvp"] != workflow_analysis["replicable_mvp"]
+    assert "多智能体" in crew_analysis["problem_solved"]
+    assert "自动化" in workflow_analysis["problem_solved"]
 
 
 def test_load_llm_profiles_supports_primary_and_fallbacks(monkeypatch) -> None:

@@ -11,6 +11,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
 from . import db
+from .analyzer import infer_focus_profile
 from .github_client import GitHubClient
 from .models import RepoMetadata
 from .scanner import RadarScanner, make_intent
@@ -137,6 +138,11 @@ def _cn_text(value: Any, repo_full_name: str = "") -> Any:
     translated = value
     for source, target in replacements.items():
         translated = translated.replace(source, target)
+    translated = (
+        translated.replace("智能体 编排", "智能体编排")
+        .replace("工作流 自动化", "工作流自动化")
+        .replace("提示词 管理", "提示词管理")
+    )
     return translated
 
 
@@ -150,9 +156,61 @@ def _display_analysis(analysis: dict[str, Any], repo_full_name: str) -> dict[str
     return display
 
 
+GENERIC_ANALYSIS_PREFIXES = (
+    "根据仓库描述、文档和目录结构判断",
+    "如果它的结构能改进本地智能工作流",
+    "重点观察评测、防护规则",
+    "先看文档、示例、模板",
+    "即使整个项目不适合采用",
+    "抽取一个工作流、提示词模式",
+    "原始仓库描述是英文",
+    "智能体编排",
+    "工作流自动化",
+)
+
+
+def _specific_or_focus(value: Any, fallback: str) -> str:
+    fallback = str(fallback or "").strip().rstrip("。！？.!?")
+    text = str(value or "").strip()
+    if not text or text == "未知":
+        return fallback
+    if any(text.startswith(prefix) for prefix in GENERIC_ANALYSIS_PREFIXES):
+        return fallback
+    if "可能包含可复用的智能工作流、治理经验或灵感线索" in text:
+        return fallback
+    return text.rstrip("。！？.!?")
+
+
+def _sentence(value: Any) -> str:
+    text = str(value or "").strip()
+    if not text:
+        return ""
+    if text.endswith(("。", "！", "？", ".", "!", "?")):
+        return text
+    return f"{text}。"
+
+
+def _selected_paths(selected_files: list[dict[str, Any]]) -> list[str]:
+    return [str(item.get("path", "")).strip() for item in selected_files if item.get("path")]
+
+
+def _selected_snippets(selected_files: list[dict[str, Any]]) -> list[str]:
+    return [str(item.get("content", "")) for item in selected_files if item.get("content")]
+
+
 def _library_item(row: Any) -> dict[str, Any]:
     analysis = json.loads(row["analysis_json"])
     scores = json.loads(row["scores_json"])
+    try:
+        topics = json.loads(row["topics_json"] or "[]")
+    except Exception:
+        topics = []
+    focus = infer_focus_profile(
+        repo_full_name=row["repo_full_name"],
+        description=row["description"] or "",
+        topics=topics,
+        project_type=analysis.get("project_type", "Other"),
+    )
     return {
         "id": int(row["id"]),
         "repo_full_name": row["repo_full_name"],
@@ -169,7 +227,7 @@ def _library_item(row: Any) -> dict[str, Any]:
         "total_score": analysis.get("total_score", 0),
         "one_line_judgment": analysis.get("one_line_judgment", ""),
         "project_type": analysis.get("project_type", "Other"),
-        "project_type_label": PROJECT_TYPE_LABELS.get(analysis.get("project_type", "Other"), analysis.get("project_type", "Other")),
+        "project_type_label": focus["learn_label"],
         "scores": scores,
     }
 
@@ -186,6 +244,19 @@ def _detail_view(detail: dict[str, Any] | None) -> dict[str, Any] | None:
         topics = json.loads(project.get("topics_json") or "[]")
     except Exception:
         topics = []
+    selected_paths = _selected_paths(detail["selected_files"])
+    focus = infer_focus_profile(
+        repo_full_name=project["repo_full_name"],
+        description=project.get("description") or "",
+        topics=topics,
+        selected_paths=selected_paths,
+        content_snippets=_selected_snippets(detail["selected_files"]),
+        project_type=analysis_json.get("project_type", "Other"),
+    )
+    analysis_json["one_line_judgment"] = _specific_or_focus(
+        analysis_json.get("one_line_judgment", ""),
+        f"{project['repo_full_name']} 更像一个{focus['category']}，适合观察{focus['learn_label']}。",
+    )
     metrics = [
         ("灵感强度", scores.get("inspiration", 0)),
         ("可复刻性", scores.get("replicability", 0)),
@@ -198,31 +269,28 @@ def _detail_view(detail: dict[str, Any] | None) -> dict[str, Any] | None:
         ("隐藏成本", scores.get("hidden_cost", 0)),
     ]
     worth_tags = [
-        f"可学：{PROJECT_TYPE_LABELS.get(analysis_json.get('project_type', 'Other'), '其他')}",
-        "可能拆出小实验" if scores.get("replicability", 0) >= 3 else "先观察再决定",
+        f"可学：{focus['learn_label']}",
+        f"能拆：{focus['experiment_label']}",
+        f"适合：{focus['audience_label']}",
     ]
     if scores.get("governance_value", 0) >= 3:
-        worth_tags.append("有治理启发")
+        worth_tags.append("留意治理边界")
     if scores.get("knowledge_density", 0) >= 3:
-        worth_tags.append("知识密度较高")
+        worth_tags.append("知识可复盘")
     if scores.get("automation_value", 0) >= 3:
-        worth_tags.append("有自动化线索")
+        worth_tags.append("可拆自动化动作")
     worth_tags.append(ACTION_LABELS.get(analysis["final_action"], analysis["final_action"]))
-    problem = analysis_json.get("problem_solved", "未知")
-    if problem == "原始仓库描述是英文，已保留在后台证据中；前台只展示中文判断。":
-        problem = "这个仓库的原始简介不足以直接判断价值，前台改按仓库结构、文档线索、主题和评分来判断它是否值得留下。"
-    problem = str(problem).rstrip("。！？.!?")
-    ai_pattern = analysis_json.get("ai_pattern", "未知")
-    ai_pattern = str(ai_pattern).rstrip("。！？.!?")
-    direct_value = analysis_json.get("direct_value_for_me", "未知")
-    governance_value = analysis_json.get("governance_value", "未知")
-    knowledge_tips = analysis_json.get("knowledge_tips", "未知")
-    inspiration_value = analysis_json.get("inspiration_value", "未知")
-    replicable_mvp = analysis_json.get("replicable_mvp", "未知")
-    hidden_costs = analysis_json.get("hidden_costs", "未知")
+    problem = _specific_or_focus(analysis_json.get("problem_solved", "未知"), focus["problem_solved"])
+    ai_pattern = _specific_or_focus(analysis_json.get("ai_pattern", "未知"), focus["core_play"])
+    direct_value = _specific_or_focus(analysis_json.get("direct_value_for_me", "未知"), focus["direct_value_for_me"])
+    governance_value = _specific_or_focus(analysis_json.get("governance_value", "未知"), focus["governance_value"])
+    knowledge_tips = _specific_or_focus(analysis_json.get("knowledge_tips", "未知"), focus["knowledge_tips"])
+    inspiration_value = _specific_or_focus(analysis_json.get("inspiration_value", "未知"), focus["inspiration_value"])
+    replicable_mvp = _specific_or_focus(analysis_json.get("replicable_mvp", "未知"), focus["replicable_mvp"])
+    hidden_costs = _specific_or_focus(analysis_json.get("hidden_costs", "未知"), focus["hidden_costs"])
     worth_intro = (
-        f"这条进入前台，不是因为热度，而是因为它可能提供“{PROJECT_TYPE_LABELS.get(analysis_json.get('project_type', 'Other'), '其他')}”方向的灵感。"
-        f"当前看到的核心玩法是：{ai_pattern}。"
+        f"这条值得留下，不是因为热度，而是因为它更像“{focus['category']}”样本。"
+        f"当前可观察的玩法是：{ai_pattern}。"
     )
     return {
         "project": project,
@@ -242,10 +310,10 @@ def _detail_view(detail: dict[str, Any] | None) -> dict[str, Any] | None:
         "worth_intro": worth_intro,
         "worth_tags": worth_tags,
         "inspiration_paragraphs": [
-            f"它大概在做什么：{problem}。我关心的不是这个仓库本身有多大，而是它有没有把一个智能工作流、治理方法、知识技巧或自动化动作讲清楚。",
-            f"可能带来的灵感：{inspiration_value} {direct_value} 如果它能展示新的组织方式、流程拆法、边界控制或小技巧，就值得留下。",
-            f"最小可复刻动作：{replicable_mvp} 这个动作应该足够小，可以在本地先做一个实验，而不是一上来复刻整个项目。",
-            f"继续阅读的判断：{knowledge_tips} {governance_value} 成本侧要注意：{hidden_costs}。",
+            f"它大概在做什么：{problem}。我会把它当作一个灵感源来看，而不是只判断项目大不大、火不火。",
+            f"可能带来的灵感：{_sentence(inspiration_value)}{_sentence(direct_value)}",
+            f"最小可复刻动作：{_sentence(replicable_mvp)}这个动作要足够小，先能在本地验证，再决定要不要继续深挖。",
+            f"继续阅读的判断：{_sentence(knowledge_tips)}{_sentence(governance_value)}成本侧要注意：{hidden_costs}。",
         ],
     }
 
