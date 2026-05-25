@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>GitHub AI 项目雷达</title>
   <link rel="stylesheet" href="{{ url_for('static', path='styles.css') }}">
+  <script defer src="{{ url_for('static', path='app.js') }}"></script>
 </head>
 <body>
   <main class="app-shell">
@@ -58,7 +59,7 @@
         <a class="{{ 'active' if filter_name == 'experiment' else '' }}" href="/?filter=experiment">实验</a>
       </nav>
 
-      <section class="library-list compact-list" aria-label="项目列表">
+      <section class="library-list compact-list" aria-label="项目列表" data-scroll-memory="library">
         <div class="list-sort-label">按扫描时间排序，最新在前</div>
         {% for item in library %}
           <article class="library-item {{ 'selected' if detail and detail.project.id == item.id else '' }}">
