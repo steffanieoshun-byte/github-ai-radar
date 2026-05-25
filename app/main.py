@@ -5,7 +5,6 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
-from dotenv import load_dotenv
 from fastapi import FastAPI, Form, Request
 from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
@@ -13,12 +12,13 @@ from fastapi.templating import Jinja2Templates
 
 from . import db
 from .analyzer import infer_focus_profile
+from .config import load_local_env
 from .github_client import GitHubClient
 from .models import RepoMetadata
 from .scanner import RadarScanner, make_intent
 
 
-load_dotenv()
+load_local_env()
 
 BASE_DIR = Path(__file__).resolve().parent
 PROJECT_DIR = BASE_DIR.parent

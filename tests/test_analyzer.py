@@ -154,6 +154,7 @@ def test_load_llm_profiles_supports_primary_and_fallbacks(monkeypatch) -> None:
     monkeypatch.setenv("LLM_FALLBACK_1_API_KEY", "fallback-key")
     monkeypatch.setenv("LLM_FALLBACK_1_BASE_URL", "https://fallback.example/v1")
     monkeypatch.setenv("LLM_FALLBACK_1_MODEL", "fallback-model")
+    monkeypatch.delenv("DEEPSEEK_API_KEY", raising=False)
 
     profiles = load_llm_profiles()
 
@@ -181,6 +182,7 @@ def test_get_analyzer_uses_mock_without_complete_llm_config(monkeypatch) -> None
     monkeypatch.delenv("LLM_API_KEY", raising=False)
     monkeypatch.delenv("LLM_MODEL", raising=False)
     monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    monkeypatch.delenv("DEEPSEEK_API_KEY", raising=False)
 
     analyzer = get_analyzer()
     assert isinstance(analyzer, MockAnalyzer)
